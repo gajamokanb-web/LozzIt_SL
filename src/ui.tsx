@@ -217,31 +217,70 @@ function TabItem({ t, on, onPress }: { t: Tab; on: boolean; onPress: () => void 
   );
 }
 
-const GATE_FRAMES = [
-  require('../assets/gate/f00.png'), require('../assets/gate/f01.png'), require('../assets/gate/f02.png'), require('../assets/gate/f03.png'),
-  require('../assets/gate/f04.png'), require('../assets/gate/f05.png'), require('../assets/gate/f06.png'), require('../assets/gate/f07.png'),
-  require('../assets/gate/f08.png'), require('../assets/gate/f09.png'), require('../assets/gate/f10.png'), require('../assets/gate/f11.png'),
-];
-const GATE_FRAME_MS = 120; // 12 frames, looping (idle pulse / breathing)
-const GATE_SIZE = 89; // sprite is 137px square, recentred on the "+" so it never drifts; the ring (~80px) shows at ~52
-const GATE_CX = (68 / 137) * GATE_SIZE, GATE_CY = (79 / 137) * GATE_SIZE; // the "+" centre inside the scaled sprite
+const GATE_IMG = require('../assets/gate/plus.png'); // supplied "+" artwork, static: nothing in it moves
+const GATE_SIZE = 76; // image is 152px square, ring about 100px wide, so it shows at about 50
 const GATE_DY = -7; // "+" centre relative to the top edge of the bar
+const AURA = 150; // canvas of the electric aura, centred on the "+"
+const RING = 25; // ring radius in dp: the bolts start just outside it
 
-/** The "+" gate: a 12-frame looping sprite (violet ring breathing with flames). Pressed = shrinks and dims. */
+/** One lightning bolt: a jagged polyline leaving the ring at angle `a`. */
+function bolt(a: number, len: number): string {
+  const n = 5, pts: string[] = [];
+  for (let i = 0; i <= n; i++) {
+    const rr = RING + 1 + (len * i) / n, j = i === 0 ? 0 : (Math.random() - 0.5) * 7;
+    const ang = a + j / rr;
+    pts.push(`${AURA / 2 + Math.cos(ang) * rr} ${AURA / 2 + Math.sin(ang) * rr}`);
+  }
+  return 'M ' + pts.join(' L ');
+}
+const randBolts = () => Array.from({ length: 12 }, (_, i) => (Math.random() < 0.65 ? bolt((i / 12) * Math.PI * 2 + (Math.random() - 0.5) * 0.35, 14 + Math.random() * 24) : null));
+
+/** The "+" gate: a fixed image with a pulsing violet glow and flickering electric arcs around it. Pressed = shrinks and dims. */
 function GateButton({ onPress }: { onPress: () => void }) {
-  const [frame, setFrame] = useState(0);
+  const pulse = React.useRef(new Animated.Value(0)).current;
   const press = React.useRef(new Animated.Value(0)).current;
+  const [bolts, setBolts] = useState<(string | null)[]>(() => randBolts());
   useEffect(() => {
-    const id = setInterval(() => setFrame((n) => (n + 1) % GATE_FRAMES.length), GATE_FRAME_MS);
-    return () => clearInterval(id);
-  }, []);
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1, duration: 1300, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 0, duration: 1300, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ]));
+    loop.start();
+    const id = setInterval(() => setBolts(randBolts()), 120);
+    return () => { loop.stop(); clearInterval(id); };
+  }, [pulse]);
   const to = (v: number) => Animated.timing(press, { toValue: v, duration: 90, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
   const scale = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.92] });
   const op = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.8] });
+  const glowOp = Animated.multiply(pulse.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }), op);
+  const cy = BTN_R + 1 + GATE_DY; // "+" centre inside the slot
+  const box = (size: number) => ({ position: 'absolute' as const, left: BTN_R - size / 2, top: cy - size / 2, width: size, height: size });
   return (
     <Pressable style={s.gate} onPress={onPress} onPressIn={() => to(1)} onPressOut={() => to(0)} accessibilityRole="button" accessibilityLabel="Add">
-      <Animated.View pointerEvents="none" style={{ position: 'absolute', left: BTN_R - GATE_CX, top: BTN_R + 1 + GATE_DY - GATE_CY, width: GATE_SIZE, height: GATE_SIZE, opacity: op, transform: [{ scale }] }}>
-        <Image source={GATE_FRAMES[frame]} style={{ width: GATE_SIZE, height: GATE_SIZE }} fadeDuration={0} />
+      <Animated.View pointerEvents="none" style={[box(AURA), { opacity: glowOp }]}>
+        <Svg width={AURA} height={AURA}>
+          <Defs>
+            <RadialGradient id="gateGlow" cx={AURA / 2} cy={AURA / 2} rx={AURA / 2} ry={AURA / 2} fx={AURA / 2} fy={AURA / 2} gradientUnits="userSpaceOnUse">
+              <Stop offset="0.3" stopColor="#8B4DFF" stopOpacity={0.55} />
+              <Stop offset="0.65" stopColor="#6A2FE0" stopOpacity={0.2} />
+              <Stop offset="1" stopColor="#6A2FE0" stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Circle cx={AURA / 2} cy={AURA / 2} r={AURA / 2} fill="url(#gateGlow)" />
+        </Svg>
+      </Animated.View>
+      <Animated.View pointerEvents="none" style={[box(AURA), { opacity: op }]}>
+        <Svg width={AURA} height={AURA}>
+          {bolts.map((d, i) => d && (
+            <G key={i}>
+              <Path d={d} fill="none" stroke="#8B4DFF" strokeOpacity={0.4} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
+              <Path d={d} fill="none" stroke="#F1E7FF" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+            </G>
+          ))}
+        </Svg>
+      </Animated.View>
+      <Animated.View pointerEvents="none" style={[box(GATE_SIZE), { opacity: op, transform: [{ scale }] }]}>
+        <Image source={GATE_IMG} style={{ width: GATE_SIZE, height: GATE_SIZE }} fadeDuration={0} />
       </Animated.View>
     </Pressable>
   );
