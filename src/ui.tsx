@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Keyboard, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Text } from './i18n';
-import Svg, { Circle, Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, G, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { alpha, c, f, glow, onTheme, r, textGlow } from './theme';
 import type { MealKey } from './domain';
@@ -34,6 +34,7 @@ export const P = {
   zap: ['M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z'],
   camera: ['M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z', 'M12 13m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0'],
   book: ['M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20'],
+  chef: ['M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z', 'M6 17h12'],
   more: ['M12 5.5v.01', 'M12 12v.01', 'M12 18.5v.01'],
   trash: ['M3 6h18', 'M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2', 'M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6', 'M10 11v6', 'M14 11v6'],
   copy: ['M9 9h10a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z', 'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'],
@@ -162,33 +163,192 @@ export function Title({ children }: { children: string }) {
   );
 }
 
-const LABELS: Record<Tab, string> = { home: 'Status', stats: 'Stats', recipes: 'Grimoire', profile: 'Hunter' };
+/* ---------- Bottom bar ----------
+ * Drawn from the design sheet: a dark bar with pointed ends and a round notch for the "+" gate, violet outline,
+ * one accent colour per tab, and a violet gate button with an aura and licking flames. The bar keeps its own
+ * violet palette in both themes. */
+const NAV = {
+  line: '#8B4DFF',
+  lineSoft: '#6A3BE0',
+  fillTop: '#180E3A',
+  fillBot: '#0A0619',
+  idle: '#8F87CC',
+  idleLabel: '#A9A1D8',
+  btnIn: '#4A25BE',
+  btnOut: '#190A52',
+  ring: '#BC96FF',
+  plus: '#F3E9FF',
+};
+const TAB_STYLE: Record<Tab, { d: string[]; color: string; fill?: boolean }> = {
+  home: { d: P.home, color: '#D78BFF', fill: true },
+  stats: { d: P.stats, color: '#3DB8FF' },
+  recipes: { d: P.chef, color: '#FF9272' },
+  profile: { d: P.user, color: '#2CE6C4' },
+};
+const LABELS: Record<Tab, string> = { home: 'Dashboard', stats: 'Stats', recipes: 'Recipes', profile: 'Profile' };
+
+const BAR_H = 68; // the bar itself
+const OVER = 92; // room above the bar for the gate button, its aura and its flames
+const MARGIN = 12;
+const BTN_R = 33; // gate button radius
+const CANVAS = 140; // square canvas holding the aura / flames, centred on the button
+const CC = { x: 70, y: 86 }; // button centre inside that canvas
+
+function barPath(w: number) {
+  const p = 3, tip = 26, h = BAR_H, cx = w / 2, nr = BTN_R + 9;
+  const dx = Math.sqrt(nr * nr - 16); // the notch is a circle centred 4px above the top edge
+  return `M ${p + tip} ${p} L ${cx - dx} ${p} A ${nr} ${nr} 0 0 0 ${cx + dx} ${p} L ${w - p - tip} ${p} L ${w - p} ${h / 2} L ${w - p - tip} ${h - p} L ${p + tip} ${h - p} L ${p} ${h / 2} Z`;
+}
+const diamond = (x: number, y: number, rx: number, ry: number) => `M ${x} ${y - ry} L ${x + rx} ${y} L ${x} ${y + ry} L ${x - rx} ${y} Z`;
+
+function BarShape({ w }: { w: number }) {
+  const d = barPath(w);
+  return (
+    <Svg width={w} height={BAR_H} style={{ position: 'absolute', left: 0, top: OVER }}>
+      <Defs>
+        <LinearGradient id="barFill" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={NAV.fillTop} stopOpacity={1} />
+          <Stop offset="1" stopColor={NAV.fillBot} stopOpacity={1} />
+        </LinearGradient>
+      </Defs>
+      <Path d={d} fill="url(#barFill)" />
+      {/* soft outer glow, then the crisp outline */}
+      <Path d={d} fill="none" stroke={NAV.line} strokeOpacity={0.12} strokeWidth={9} strokeLinejoin="round" />
+      <Path d={d} fill="none" stroke={NAV.line} strokeOpacity={0.28} strokeWidth={4.5} strokeLinejoin="round" />
+      <Path d={d} fill="none" stroke={NAV.line} strokeWidth={1.6} strokeLinejoin="round" />
+      {/* ornaments: the two tips and the foot of the notch */}
+      <Path d={diamond(10, BAR_H / 2, 5.5, 7.5)} fill={NAV.fillBot} stroke={NAV.ring} strokeWidth={1.4} />
+      <Path d={diamond(w - 10, BAR_H / 2, 5.5, 7.5)} fill={NAV.fillBot} stroke={NAV.ring} strokeWidth={1.4} />
+      <Path d={diamond(w / 2, 3 + BTN_R + 9 - 4 - 1, 4.5, 6)} fill={NAV.ring} />
+    </Svg>
+  );
+}
+
+function TabItem({ t, on, onPress }: { t: Tab; on: boolean; onPress: () => void }) {
+  const st = TAB_STYLE[t];
+  const col = on ? st.color : NAV.idle;
+  return (
+    <Pressable style={({ pressed }) => [s.tab, pressed && { opacity: 0.65 }]} onPress={onPress} hitSlop={4} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={LABELS[t]}>
+      <View style={s.tabIcon}>
+        {on && (
+          <Svg width={64} height={64} style={{ position: 'absolute', top: -15, left: 0 }} pointerEvents="none">
+            <Defs>
+              <RadialGradient id={`tg_${t}`} cx="32" cy="32" rx="30" ry="30" fx="32" fy="32" gradientUnits="userSpaceOnUse">
+                <Stop offset="0" stopColor={st.color} stopOpacity={0.4} />
+                <Stop offset="1" stopColor={st.color} stopOpacity={0} />
+              </RadialGradient>
+            </Defs>
+            <Circle cx={32} cy={32} r={30} fill={`url(#tg_${t})`} />
+          </Svg>
+        )}
+        <Icon d={st.d} size={24} color={col} fill={st.fill ? col : 'none'} sw={st.fill ? 1.6 : 2.1} />
+      </View>
+      <Text style={[s.tabLabel, { color: on ? st.color : NAV.idleLabel }, on && { fontFamily: f.semi }]}>{LABELS[t]}</Text>
+      <View style={[s.tabBar, { backgroundColor: st.color, opacity: on ? 1 : 0, ...glow(st.color, 8, 0.9) }]} />
+    </Pressable>
+  );
+}
+
+/** One flame tongue, drawn upwards from the origin. */
+const tongue = (w: number, h: number, bend: number) =>
+  `M ${-w} 0 C ${-w * 1.15} ${-h * 0.4} ${-w * 0.1 + bend} ${-h * 0.55} ${w * 0.2 + bend * 1.6} ${-h} C ${w * 0.15 + bend} ${-h * 0.6} ${w * 1.2} ${-h * 0.42} ${w} 0 Z`;
+const FLAMES = [
+  { a: -64, w: 4.5, h: 17, b: -3 }, { a: -46, w: 5, h: 24, b: 4 }, { a: -27, w: 5.5, h: 30, b: -4 }, { a: -9, w: 6, h: 36, b: 5 },
+  { a: 9, w: 6, h: 33, b: -5 }, { a: 27, w: 5.5, h: 27, b: 4 }, { a: 46, w: 5, h: 22, b: -3 }, { a: 65, w: 4.5, h: 16, b: 3 },
+];
+
+/** The violet gate: aura, flames, ring, "+" and the four compass diamonds. Pressed = shrinks and dims. */
+function GateButton({ onPress }: { onPress: () => void }) {
+  const pulse = React.useRef(new Animated.Value(0)).current;
+  const flick = React.useRef(new Animated.Value(0)).current;
+  const press = React.useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const mk = (v: Animated.Value, ms: number) => Animated.loop(Animated.sequence([
+      Animated.timing(v, { toValue: 1, duration: ms, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(v, { toValue: 0, duration: ms, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ]));
+    const a = mk(pulse, 1700), b = mk(flick, 430);
+    a.start(); b.start();
+    return () => { a.stop(); b.stop(); };
+  }, [pulse, flick]);
+  const to = (v: number) => Animated.timing(press, { toValue: v, duration: 90, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
+  const auraScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] });
+  const auraOp = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] });
+  const flameScale = flick.interpolate({ inputRange: [0, 1], outputRange: [0.93, 1.07] });
+  const flameOp = Animated.multiply(flick.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }), press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.35] }));
+  const btnScale = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.92] });
+  const btnOp = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.85] });
+  const layer = { position: 'absolute' as const, left: BTN_R - CC.x, top: BTN_R - CC.y, width: CANVAS, height: CANVAS };
+  return (
+    <Pressable style={s.gate} onPress={onPress} onPressIn={() => to(1)} onPressOut={() => to(0)} accessibilityRole="button" accessibilityLabel="Add">
+      <Animated.View pointerEvents="none" style={[layer, { opacity: auraOp, transform: [{ scale: auraScale }] }]}>
+        <Svg width={CANVAS} height={CANVAS}>
+          <Defs>
+            <RadialGradient id="aura" cx={CC.x} cy={CC.y} rx={50} ry={50} fx={CC.x} fy={CC.y} gradientUnits="userSpaceOnUse">
+              <Stop offset="0.45" stopColor="#8B4DFF" stopOpacity={0.42} />
+              <Stop offset="1" stopColor="#8B4DFF" stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Circle cx={CC.x} cy={CC.y} r={50} fill="url(#aura)" />
+        </Svg>
+      </Animated.View>
+      <Animated.View pointerEvents="none" style={[layer, { opacity: flameOp, transform: [{ scale: flameScale }] }]}>
+        <Svg width={CANVAS} height={CANVAS}>
+          <Defs>
+            <LinearGradient id="flame" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="-38">
+              <Stop offset="0" stopColor="#D6B4FF" stopOpacity={0.95} />
+              <Stop offset="0.45" stopColor="#8B4DFF" stopOpacity={0.7} />
+              <Stop offset="1" stopColor="#4B1FB0" stopOpacity={0} />
+            </LinearGradient>
+          </Defs>
+          {FLAMES.map((fl, i) => {
+            const r = (fl.a * Math.PI) / 180, base = BTN_R + 1;
+            return (
+              <G key={i} transform={`translate(${CC.x + Math.sin(r) * base} ${CC.y - Math.cos(r) * base}) rotate(${fl.a})`}>
+                <Path d={tongue(fl.w, fl.h, fl.b)} fill="url(#flame)" />
+              </G>
+            );
+          })}
+        </Svg>
+      </Animated.View>
+      <Animated.View pointerEvents="none" style={[layer, { opacity: btnOp, transform: [{ scale: btnScale }] }]}>
+        <Svg width={CANVAS} height={CANVAS}>
+          <Defs>
+            <RadialGradient id="gate" cx={CC.x} cy={CC.y - 6} rx={BTN_R} ry={BTN_R} fx={CC.x} fy={CC.y - 8} gradientUnits="userSpaceOnUse">
+              <Stop offset="0" stopColor={NAV.btnIn} />
+              <Stop offset="1" stopColor={NAV.btnOut} />
+            </RadialGradient>
+          </Defs>
+          <Circle cx={CC.x} cy={CC.y} r={BTN_R + 3} fill="none" stroke={NAV.line} strokeOpacity={0.3} strokeWidth={5} />
+          <Circle cx={CC.x} cy={CC.y} r={BTN_R} fill="url(#gate)" stroke={NAV.ring} strokeWidth={2.6} />
+          <Circle cx={CC.x} cy={CC.y} r={BTN_R - 5} fill="none" stroke={NAV.line} strokeOpacity={0.55} strokeWidth={1} />
+          <Path d={`M ${CC.x - 12} ${CC.y} H ${CC.x + 12} M ${CC.x} ${CC.y - 12} V ${CC.y + 12}`} stroke={NAV.plus} strokeWidth={3.6} strokeLinecap="round" />
+          {[[0, -1], [1, 0], [0, 1], [-1, 0]].map(([ux, uy], i) => (
+            <Path key={i} d={diamond(CC.x + ux * (BTN_R + 8), CC.y + uy * (BTN_R + 8), ux === 0 ? 3.2 : 4.4, uy === 0 ? 3.2 : 4.4)} fill={NAV.ring} />
+          ))}
+        </Svg>
+      </Animated.View>
+    </Pressable>
+  );
+}
 
 export function BottomNav({ tab, onTab, onAdd }: { tab: Tab; onTab: (t: Tab) => void; onAdd: () => void }) {
   const { bottom } = useSafeAreaInsets();
-  const Item = ({ t, d }: { t: Tab; d: string[] }) => {
-    const on = tab === t;
-    return (
-      <Pressable style={s.tab} onPress={() => onTab(t)} hitSlop={4} accessibilityRole="button" accessibilityLabel={LABELS[t]}>
-        {on && <View style={s.tabBar} />}
-        <Icon d={d} size={22} color={on ? c.glow : c.soft} />
-        <Text style={[s.tabLabel, on && { color: c.glowText, fontFamily: f.bold }]}>{LABELS[t]}</Text>
-      </Pressable>
-    );
-  };
+  const { width } = useWindowDimensions();
+  const w = width - MARGIN * 2;
   return (
-    <View style={[s.navWrap, { bottom: Math.max(bottom, 12) + 10 }]} pointerEvents="box-none">
-      <View style={s.nav}>
-        <Item t="home" d={P.home} />
-        <Item t="stats" d={P.stats} />
-        <View style={{ width: 64 }} />
-        <Item t="recipes" d={P.book} />
-        <Item t="profile" d={P.user} />
-        <Corners />
+    <View style={[s.navWrap, { bottom: Math.max(bottom, 12) + 4, left: MARGIN, right: MARGIN }]} pointerEvents="box-none">
+      <BarShape w={w} />
+      <View style={s.tabs} pointerEvents="box-none">
+        <TabItem t="home" on={tab === 'home'} onPress={() => onTab('home')} />
+        <TabItem t="stats" on={tab === 'stats'} onPress={() => onTab('stats')} />
+        <View style={{ width: 2 * (BTN_R + 14) }} />
+        <TabItem t="recipes" on={tab === 'recipes'} onPress={() => onTab('recipes')} />
+        <TabItem t="profile" on={tab === 'profile'} onPress={() => onTab('profile')} />
       </View>
-      <Pressable style={s.scan} onPress={onAdd} accessibilityRole="button" accessibilityLabel="Add">
-        <View style={s.scanIcon}><Icon d={P.plus} size={28} sw={2.8} color={c.onGlow} /></View>
-      </Pressable>
+      <View style={[s.gateSlot, { left: w / 2 - BTN_R }]} pointerEvents="box-none">
+        <GateButton onPress={onAdd} />
+      </View>
     </View>
   );
 }
@@ -198,13 +358,14 @@ const mkStyles = () => StyleSheet.create({
   title: { fontFamily: f.extra, fontSize: 24, color: c.ink, letterSpacing: 3, textTransform: 'uppercase', ...textGlow(c.glow, 14) },
   rule: { height: 1, backgroundColor: c.line, marginTop: 8 },
   ruleBright: { width: 54, height: 2, marginTop: -0.5, backgroundColor: c.glow, ...glow(c.glow, 8, 0.9) },
-  navWrap: { position: 'absolute', left: 16, right: 16 },
-  nav: { ...card, height: 70, borderRadius: r.md, borderColor: c.panelLine, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 4, elevation: 10, ...glow(c.glow, 16, 0.35) },
-  tab: { width: 68, height: 56, alignItems: 'center', justifyContent: 'center', gap: 4 },
-  tabBar: { position: 'absolute', top: -7, width: 30, height: 2, backgroundColor: c.glow, ...glow(c.glow, 8, 1) },
-  tabLabel: { fontFamily: f.semi, fontSize: 10.5, color: c.soft, letterSpacing: 0.8, textTransform: 'uppercase' },
-  scan: { position: 'absolute', alignSelf: 'center', top: -30, width: 60, height: 60, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '45deg' }], borderRadius: r.lg, backgroundColor: c.glow, borderWidth: 4, borderColor: c.page, elevation: 12, ...glow(c.glow, 18, 0.8) },
-  scanIcon: { transform: [{ rotate: '-45deg' }] },
+  navWrap: { position: 'absolute', height: OVER + BAR_H },
+  tabs: { position: 'absolute', left: 30, right: 30, top: OVER, height: BAR_H, flexDirection: 'row', alignItems: 'center' },
+  tab: { flex: 1, height: BAR_H, alignItems: 'center', justifyContent: 'center', paddingTop: 2 },
+  tabIcon: { width: 64, height: 34, alignItems: 'center', justifyContent: 'center' },
+  tabLabel: { fontFamily: f.medium, fontSize: 11.5, marginTop: 1 },
+  tabBar: { width: 42, height: 3, borderRadius: 2, marginTop: 4 },
+  gateSlot: { position: 'absolute', top: OVER - 1 - BTN_R, width: BTN_R * 2, height: BTN_R * 2 },
+  gate: { width: BTN_R * 2, height: BTN_R * 2, borderRadius: BTN_R },
 });
 export let s = mkStyles();
 onTheme(() => { s = mkStyles(); });

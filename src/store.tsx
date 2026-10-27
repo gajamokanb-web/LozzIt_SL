@@ -6,7 +6,7 @@ import { DEFAULT_CATS, type Recipe } from './recipes';
 
 type Settings = { fit: boolean; stepSource: string; meals: MealKey[]; showSugar: boolean; showSalt: boolean; showFiber: boolean; showSat: boolean; stepGoal: number; groqKey: string; groqModel: string; iconNames: Record<string, string>; theme: 'light' | 'dark' | 'system'; lang: 'en' | 'fr' }; // stepSource: 'all' or a Health Connect package name
 type State = { profile: Profile | null; entries: Entry[]; water: Record<string, number>; weights: Record<string, number>; foods: Record<string, Food>; recipes: Recipe[]; recipeCats: string[]; settings: Settings };
-const EMPTY: State = { profile: null, entries: [], water: {}, weights: {}, foods: {}, recipes: [], recipeCats: DEFAULT_CATS, settings: { fit: false, stepSource: 'all', meals: ['breakfast', 'snack_am', 'lunch', 'snack_pm', 'dinner', 'snack_eve'], showSugar: false, showSalt: false, showFiber: false, showSat: false, stepGoal: 10000, groqKey: '', groqModel: 'qwen/qwen3.8-27b', iconNames: {}, theme: 'light', lang: /^fr/i.test(Intl.DateTimeFormat().resolvedOptions().locale) ? 'fr' : 'en' } };
+const EMPTY: State = { profile: null, entries: [], water: {}, weights: {}, foods: {}, recipes: [], recipeCats: DEFAULT_CATS, settings: { fit: false, stepSource: 'all', meals: ['breakfast', 'snack_am', 'lunch', 'snack_pm', 'dinner', 'snack_eve'], showSugar: false, showSalt: false, showFiber: false, showSat: false, stepGoal: 10000, groqKey: '', groqModel: 'qwen/qwen3.8-27b', iconNames: {}, theme: 'dark', lang: /^fr/i.test(Intl.DateTimeFormat().resolvedOptions().locale) ? 'fr' : 'en' } };
 const KEY = 'lozzit:v1';
 
 type Store = {

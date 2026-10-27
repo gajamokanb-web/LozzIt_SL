@@ -67,7 +67,7 @@ export function Recipes({ request, onConsumed, onPickFood }: { request: RecipeRe
   return (
     <Screen>
       <View style={s.head}>
-        <Title>Grimoire</Title>
+        <Title>Recipes</Title>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <Pressable onPress={() => { setSearching((v) => !v); setQ(''); }} style={s.gear} hitSlop={8} accessibilityRole="button" accessibilityLabel="Search recipes"><Icon d={searching ? P.x : P.search} size={20} color={c.ink} /></Pressable>
           <Pressable onPress={() => setCats(true)} style={s.gear} hitSlop={8} accessibilityRole="button" accessibilityLabel="Edit categories"><Icon d={P.edit} size={20} color={c.ink} /></Pressable>

@@ -6,10 +6,10 @@ First launch walks you through creating a profile; meals, water and profile are 
 ![preview](assets/preview.png)
 
 ## Look & feel
-- **Two dark themes** (Profile > Appearance): *Monarch* (System-window blue, default), *Shadow* (shadow-monarch violet), and *Auto* (Monarch, Shadow when the phone is in dark mode).
+- **Two dark themes** (Profile > Appearance): *Shadow* (shadow-monarch violet, default), *Monarch* (System-window blue), and *Auto* (Monarch, Shadow when the phone is in dark mode).
 - **Type**: Cinzel (engraved serif) for titles and big numbers, Chakra Petch (angular HUD sans) for everything else.
 - **Shapes**: angular panels with glowing borders and corner brackets, a diamond "gate" button in the nav, rune medallions for meals and water, a glowing status ring on the home screen.
-- Tabs are renamed Status / Stats / Grimoire (recipes) / Hunter (profile).
+- **Bottom bar**: dark bar with pointed ends and a round notch, one accent colour per tab (Dashboard, Stats, Recipes with a chef hat, Profile), and a violet gate "+" button with a pulsing aura and flames. It keeps its violet palette in both themes.
 - Everything is driven by `src/theme.ts` (palettes, fonts, glow helpers) and `src/ui.tsx` (shared components).
 - It installs next to the original: its Android package is `com.lozzit.sl`.
 
