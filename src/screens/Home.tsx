@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { askConfirm } from '../dialog';
 import { Text, tr } from '../i18n';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { c, f, glow, onTheme, textGlow } from '../theme';
 import { addDays, entryBase, fmt, fmtDay, MEALS, parseKey, scaleEntry, sum, targets, weekDays, type Entry, type MealKey } from '../domain';
 import { useStore } from '../store';
@@ -15,6 +15,109 @@ import { card, Corners, Icon, P, Screen } from '../ui';
 
 const DROP_L = 0.25; // litres per drop (250 mL)
 const MACRO_COLOR = ['#A06BFF', '#35D4FF', '#F5B83D']; // protein / carbs / fat
+const MACRO_GRAD = [['#8B4DFF', '#B98CFF'], ['#1F8BFF', '#3DB8FF'], ['#F5A000', '#FFD04A']];
+const WATER_GOAL = 2.5; // litres (10 drops)
+const STEPS_ART = require('../../assets/home/steps_art.jpg');
+const WATER_ART = require('../../assets/home/water_art.jpg');
+const ADD_BTN = require('../../assets/add_btn.png');
+
+/** Calorie ring: grows and glows with the day's progress; the emblem sits above the figures. */
+function KcalRing({ eaten, target }: { eaten: number; target: number }) {
+  const pct = Math.max(0, Math.min(eaten / target, 1)), over = eaten > target;
+  const R = 64, C = 2 * Math.PI * R, dash = `${C * pct} ${C}`;
+  const a = over ? c.red : '#A36BFF', b = over ? '#FF9AAE' : '#CBA8FF';
+  return (
+    <View style={{ width: 136, height: 136 }}>
+      <Svg width={136} height={136} viewBox="0 0 150 150">
+        <Defs>
+          <LinearGradient id="kg" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0" stopColor={a} />
+            <Stop offset="1" stopColor={b} />
+          </LinearGradient>
+        </Defs>
+        <Circle cx={75} cy={75} r={R} fill="none" stroke="#9691C8" strokeOpacity={pct >= 1 ? 0 : 0.28} strokeWidth={11} />
+        {pct > 0 && (
+          <>
+            <Circle cx={75} cy={75} r={R} fill="none" stroke={a} strokeOpacity={0.05 + 0.15 * pct} strokeWidth={28} strokeLinecap="round" strokeDasharray={dash} transform="rotate(-90 75 75)" />
+            <Circle cx={75} cy={75} r={R} fill="none" stroke={a} strokeOpacity={0.12 + 0.28 * pct} strokeWidth={19} strokeLinecap="round" strokeDasharray={dash} transform="rotate(-90 75 75)" />
+            <Circle cx={75} cy={75} r={R} fill="none" stroke="url(#kg)" strokeWidth={11} strokeLinecap="round" strokeDasharray={dash} transform="rotate(-90 75 75)" />
+          </>
+        )}
+      </Svg>
+      <View style={s.ringCenter} pointerEvents="none">
+        <Svg width={18} height={21} viewBox="0 0 40 46">
+          <G fill={a}>
+            <Path d="M20 0 L23 8 L23 36 L20 46 L17 36 L17 8Z" />
+            <Path d="M17 26 C9 26 4 20 2 8 C6 14 10 16 15 16Z M23 26 C31 26 36 20 38 8 C34 14 30 16 25 16Z" />
+            <Path d="M15 38 C8 36 6 30 8 24 C10 30 13 32 16 32Z M25 38 C32 36 34 30 32 24 C30 30 27 32 24 32Z" opacity={0.8} />
+          </G>
+        </Svg>
+        <Text style={[s.ringBig, over && { color: c.red }]}>{fmt(eaten)}</Text>
+        <Text style={s.ringSmall}>{`/ ${fmt(target)} kcal`}</Text>
+        <Text style={s.ringPct}>{`${Math.round((eaten / target) * 100)}%`}</Text>
+      </View>
+    </View>
+  );
+}
+
+const MACRO_ICON = [
+  <G key="p"><Path d="M12 2c.6 3.6 5 5.6 5 10.6A5 5 0 0 1 7 13c0-1.8.9-3.2 2-4.2.2 1.4.8 2.1 1.6 2.4C10.2 8 10.8 4.6 12 2z" fill="#A36BFF" /><Path d="M12 22a3.2 3.2 0 0 0 3.2-3.2c0-1.6-1.2-2.4-2-3.4-.4 1-1.2 1.4-1.8 1.8-.8.6-1.4 1.4-1.4 2.2A2.8 2.8 0 0 0 12 22z" fill="#D2B6FF" /></G>,
+  <G key="c"><Path d="M12 22V8M12 8c-1.5-2-1.5-4 0-6 1.5 2 1.5 4 0 6zM12 13c-3 0-4.5-1.5-5-4 2.8 0 4.8 1 5 4zM12 13c3 0 4.5-1.5 5-4-2.8 0-4.8 1-5 4zM12 18c-3 0-4.5-1.5-5-4 2.8 0 4.8 1 5 4zM12 18c3 0 4.5-1.5 5-4-2.8 0-4.8 1-5 4z" fill="none" stroke="#2F9BFF" strokeWidth={1.7} strokeLinecap="round" /></G>,
+  <G key="f"><Path d="M12 2.5C9 7 5.5 10.5 5.5 15a6.5 6.5 0 0 0 13 0C18.5 10.5 15 7 12 2.5z" fill="none" stroke="#FFB81F" strokeWidth={1.8} strokeLinejoin="round" /><Path d="M12 9c-1.8 3-3.2 4.6-3.2 6.8a3.2 3.2 0 0 0 6.4 0C15.2 13.6 13.8 12 12 9z" fill="#FFB81F" /></G>,
+];
+
+/** Glowing gradient bar (track + fill). */
+function GlowBar({ pct, i, h = 8 }: { pct: number; i: number; h?: number }) {
+  const [a, b] = MACRO_GRAD[i];
+  return (
+    <Svg width="100%" height={h}>
+      <Defs>
+        <LinearGradient id={`mb${i}${h}`} x1="0" y1="0" x2="1" y2="0">
+          <Stop offset="0" stopColor={a} />
+          <Stop offset="1" stopColor={b} />
+        </LinearGradient>
+      </Defs>
+      <Rect x={0} y={0} width="100%" height={h} rx={h / 2} fill="#1A1640" />
+      {pct > 0 && <Rect x={0} y={0} width={`${Math.min(pct, 1) * 100}%`} height={h} rx={h / 2} fill={`url(#mb${i}${h})`} />}
+    </Svg>
+  );
+}
+
+/** Illustrated stat tile (steps / water): art fading in from the right, accent bar, round buttons. */
+function StatTile({ id, art, border, accent, icon, label, value, unit, pct, buttons, onPress }: { id: string; art: number; border: string; accent: string; icon: React.ReactNode; label: string; value: string; unit: string; pct: number; buttons?: React.ReactNode; onPress?: () => void }) {
+  return (
+    <Pressable style={[s.stile, { borderColor: border }]} onPress={onPress} disabled={!onPress} accessibilityLabel={label}>
+      <Image source={art} style={s.stileArt} resizeMode="cover" />
+      <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
+        <Defs>
+          <LinearGradient id={`${id}h`} x1="0" y1="0" x2="1" y2="0">
+            <Stop offset="0" stopColor={c.card} stopOpacity={1} />
+            <Stop offset="0.28" stopColor={c.card} stopOpacity={1} />
+            <Stop offset="0.6" stopColor={c.card} stopOpacity={0} />
+          </LinearGradient>
+          <LinearGradient id={`${id}v`} x1="0" y1="1" x2="0" y2="0">
+            <Stop offset="0" stopColor={c.card} stopOpacity={0.95} />
+            <Stop offset="0.5" stopColor={c.card} stopOpacity={0} />
+          </LinearGradient>
+        </Defs>
+        <Rect x={0} y={0} width="100%" height="100%" fill={`url(#${id}h)`} />
+        <Rect x={0} y={0} width="100%" height="100%" fill={`url(#${id}v)`} />
+      </Svg>
+      <View style={s.stileIn}>
+        <View style={{ width: 26, alignItems: 'center' }}>{icon}</View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.stileLabel}>{label}</Text>
+          <Text style={s.stileVal} numberOfLines={1} adjustsFontSizeToFit>{value}<Text style={[s.stileUnit, { color: accent }]}>{unit}</Text></Text>
+          <View style={s.stileBar}>
+            <View style={{ flex: 1 }}><GlowBar pct={pct} i={accent === '#A36BFF' ? 0 : 1} h={6} /></View>
+            <Text style={[s.stilePct, { color: accent }]}>{`${Math.round(pct * 100)}%`}</Text>
+          </View>
+        </View>
+      </View>
+      {buttons ? <View style={s.stileBtns}>{buttons}</View> : null}
+    </Pressable>
+  );
+}
 
 function DateBar({ selected, onSelect, onOpen }: { selected: string; onSelect: (k: string) => void; onOpen: () => void }) {
   return (
@@ -82,8 +185,8 @@ function MealBlock({ label, entries, icons, open, onToggle, onAdd, onMenu, onEdi
             );
           })}
           <View style={s.btnRow}>
-            <Pressable onPress={onAdd} style={s.addBtn} accessibilityRole="button" accessibilityLabel={`Add food to ${label}`}>
-              <Text style={s.addText}>Add Food</Text>
+            <Pressable onPress={onAdd} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Add food to ${label}`}>
+              <Image source={ADD_BTN} style={{ width: 170, height: 53 }} resizeMode="contain" />
             </Pressable>
           </View>
         </>
@@ -155,39 +258,32 @@ export function Home({ selected, onSelect, onOpenCalendar, onAdd, onEdit, onGoSe
 
       <View style={s.hero}>
         <View style={s.heroTag}><Text style={s.heroTagT}>Status</Text></View>
-        <View style={{ width: 136, height: 136 }}>
-          <Svg width={136} height={136} viewBox="0 0 136 136">
-            <Circle cx={68} cy={68} r={R} fill="none" stroke={c.line} strokeWidth={10} />
-            <Circle cx={68} cy={68} r={R + 9} fill="none" stroke={c.line} strokeWidth={1} strokeDasharray="2 5" />
-            {pct > 0 && (
-              <>
-                <Circle cx={68} cy={68} r={R} fill="none" stroke={c.glow} strokeOpacity={0.28} strokeWidth={18} strokeLinecap="round" strokeDasharray={`${C * pct} ${C}`} transform="rotate(-90 68 68)" />
-                <Circle cx={68} cy={68} r={R} fill="none" stroke={left < 0 ? c.red : c.glow} strokeWidth={10} strokeLinecap="round" strokeDasharray={`${C * pct} ${C}`} transform="rotate(-90 68 68)" />
-              </>
-            )}
-          </Svg>
-          <View style={s.ringCenter}>
-            <Text style={[s.ringBig, left < 0 && { color: c.red }]}>{fmt(Math.abs(left))}</Text>
-            <Text style={s.ringSmall}>{left >= 0 ? 'kcal left' : 'kcal over'}</Text>
-          </View>
-        </View>
-        <View style={{ flex: 1, gap: nSubs > 1 ? 10 : 15 }}>
+        <KcalRing eaten={eaten} target={t.kcal} />
+        <View style={{ flex: 1, gap: nSubs > 1 ? 7 : 11 }}>
           {macros.map((m, i) => (
-            <View key={m.name}>
-              <View style={s.macroTop}>
-                <Text style={s.macroName}>{m.name}</Text>
-                <Text style={s.macroVal}>{Math.round(m.v)}<Text style={s.macroGoal}>/{m.goal}g</Text></Text>
+            <View key={m.name} style={s.mRow}>
+              <View style={{ marginTop: 1 }}>
+                <Svg width={22} height={22} viewBox="0 0 24 24">{MACRO_ICON[i]}</Svg>
               </View>
-              <View style={s.track}><View style={[s.fill, { width: `${Math.min(m.v / m.goal, 1) * 100}%`, backgroundColor: MACRO_COLOR[i] }]} /></View>
-              {m.subs.map((x) => (
-                <View key={x.name} style={{ marginTop: 6 }}>
-                  <View style={s.macroTop}>
-                    <Text style={s.subName}>{x.name}</Text>
-                    <Text style={s.subVal}>{Math.round(x.v * 10) / 10}<Text style={s.macroGoal}>/{x.goal}g</Text></Text>
-                  </View>
-                  <View style={s.trackS}><View style={[s.fillS, { width: `${Math.min(x.v / x.goal, 1) * 100}%`, backgroundColor: MACRO_COLOR[i] }]} /></View>
+              <View style={{ flex: 1 }}>
+                <View style={s.macroTop}>
+                  <Text style={s.macroName}>{m.name}</Text>
+                  <Text style={s.macroVal}>{Math.round(m.v)}<Text style={s.macroGoal}> / {m.goal} g</Text></Text>
                 </View>
-              ))}
+                <View style={s.mBar}>
+                  <View style={{ flex: 1 }}><GlowBar pct={m.v / m.goal} i={i} /></View>
+                  <Text style={s.mPct}>{`${Math.round((m.v / m.goal) * 100)}%`}</Text>
+                </View>
+                {m.subs.map((x) => (
+                  <View key={x.name} style={{ marginTop: 5 }}>
+                    <View style={s.macroTop}>
+                      <Text style={s.subName}>{x.name}</Text>
+                      <Text style={s.subVal}>{Math.round(x.v * 10) / 10}<Text style={s.macroGoal}>/{x.goal}g</Text></Text>
+                    </View>
+                    <View style={s.trackS}><View style={[s.fillS, { width: `${Math.min(x.v / x.goal, 1) * 100}%`, backgroundColor: MACRO_COLOR[i] }]} /></View>
+                  </View>
+                ))}
+              </View>
             </View>
           ))}
         </View>
@@ -195,40 +291,25 @@ export function Home({ selected, onSelect, onOpenCalendar, onAdd, onEdit, onGoSe
       </View>
 
       <View style={s.tiles}>
-        <Pressable style={s.tile} onPress={state.settings.fit ? undefined : onGoSettings} accessibilityLabel="Steps">
-          <View style={s.tileRow}>
-            <View style={[s.ico, { backgroundColor: c.orangeTint }]}><Icon d={P.steps} size={18} color={c.orange} sw={2.2} /></View>
-            <Text style={s.tileLabel}>Steps</Text>
-          </View>
-          {state.settings.fit ? (
-            <Text style={s.big}>{steps && selIdx >= 0 ? fmt(steps[selIdx]) : '…'}</Text>
-          ) : (
-            <Text style={s.connect}>Connect steps</Text>
-          )}
-          <View style={s.bars}>
-            {days.map((d, i) => (
-              <View
-                key={d.key}
-                style={{ width: 12, height: steps ? Math.max(4, 28 * (steps[i] / maxSteps)) : 11, borderRadius: 5, backgroundColor: steps && d.key === selected ? c.orange : steps ? c.orangeSoft : c.orangeTint }}
-              />
-            ))}
-          </View>
-        </Pressable>
-
-        <View style={s.tile}>
-          <View style={s.tileRow}>
-            <View style={[s.ico, { backgroundColor: c.blueTint }]}><Icon d={P.drop} size={18} color={c.blue} fill={c.blue} sw={0} /></View>
-            <View style={{ flex: 1 }} />
-            <Pressable onPress={() => setCount(count - 1)} style={s.pm} hitSlop={6} accessibilityLabel="Remove 250 mL"><Icon d={P.minus} size={14} sw={2.8} color={c.blue} /></Pressable>
-            <Pressable onPress={() => setCount(count + 1)} style={[s.pm, { backgroundColor: c.blue }]} hitSlop={6} accessibilityLabel="Add 250 mL"><Icon d={P.plus} size={14} sw={2.8} color="#fff" /></Pressable>
-          </View>
-          <Text style={s.big} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.1}>{litres}<Text style={s.bigUnit}> L</Text></Text>
-          <View style={s.drops}>
-            {Array.from({ length: 10 }, (_, i) => (
-              <Svg key={i} width={11.5} height={15} viewBox="5 2.5 14 19.5"><Path d={P.drop[0]} fill={i < count ? c.blue : c.blueSoft} /></Svg>
-            ))}
-          </View>
-        </View>
+        <StatTile
+          id="st" art={STEPS_ART} border="#2A2160" accent="#A36BFF" label="Steps today"
+          icon={<Icon d={P.steps} size={24} color="#A36BFF" sw={2} />}
+          value={state.settings.fit ? (steps && selIdx >= 0 ? fmt(steps[selIdx]) : '…') : '0'} unit={` / ${fmt(state.settings.stepGoal)}`}
+          pct={state.settings.fit && steps && selIdx >= 0 ? steps[selIdx] / state.settings.stepGoal : 0}
+          onPress={state.settings.fit ? undefined : onGoSettings}
+          buttons={state.settings.fit ? null : <View style={s.rbtn}><Icon d={P.next} size={14} sw={2.8} color="#fff" /></View>}
+        />
+        <StatTile
+          id="wt" art={WATER_ART} border="#1B3E78" accent="#2F9BFF" label="Water"
+          icon={<Icon d={P.drop} size={24} color="#2F9BFF" fill="#2F9BFF" sw={0} />}
+          value={String(litres).replace('.', ',')} unit={` / ${String(WATER_GOAL).replace('.', ',')} L`} pct={litres / WATER_GOAL}
+          buttons={
+            <>
+              <Pressable onPress={() => setCount(count - 1)} style={s.rbtn} hitSlop={6} accessibilityLabel="Remove 250 mL"><Icon d={P.minus} size={14} sw={2.8} color="#fff" /></Pressable>
+              <Pressable onPress={() => setCount(count + 1)} style={s.rbtn} hitSlop={6} accessibilityLabel="Add 250 mL"><Icon d={P.plus} size={14} sw={2.8} color="#fff" /></Pressable>
+            </>
+          }
+        />
       </View>
 
       <View style={{ marginTop: 10, gap: 8 }}>
@@ -306,11 +387,25 @@ const mkStyles = () => StyleSheet.create({
   heroTag: { position: 'absolute', top: -10, left: 18, paddingHorizontal: 8, backgroundColor: c.page },
   heroTagT: { fontFamily: f.bold, fontSize: 10.5, color: c.glowText, letterSpacing: 2.6, textTransform: 'uppercase', ...textGlow(c.glow, 8) },
   ringCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  ringBig: { fontFamily: f.extra, fontSize: 25, color: c.ink, letterSpacing: 0.5, ...textGlow(c.glow, 14) },
-  ringSmall: { fontFamily: f.semi, fontSize: 10.5, color: c.muted, marginTop: 3, letterSpacing: 1.2, textTransform: 'uppercase' },
+  ringBig: { fontFamily: f.extra, fontSize: 22, color: c.ink, letterSpacing: 0.5, ...textGlow(c.glow, 14) },
+  ringPct: { fontFamily: f.bold, fontSize: 11.5, color: '#fff', marginTop: 2 },
+  ringSmall: { fontFamily: f.medium, fontSize: 9.5, color: '#8A80C8', marginTop: 1 },
+  mRow: { flexDirection: 'row', gap: 8 },
+  mBar: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  mPct: { fontFamily: f.medium, fontSize: 10.5, color: '#B9AEE8', width: 30, textAlign: 'right' },
+  stile: { flex: 1, height: 100, borderRadius: 6, borderWidth: 1, backgroundColor: c.card, overflow: 'hidden' },
+  stileArt: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '78%' },
+  stileIn: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, gap: 4 },
+  stileLabel: { fontFamily: f.medium, fontSize: 11, color: '#E7E1FF' },
+  stileVal: { fontFamily: f.bold, fontSize: 17, color: '#fff' },
+  stileUnit: { fontFamily: f.medium, fontSize: 10.5 },
+  stileBar: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5 },
+  stilePct: { fontFamily: f.medium, fontSize: 10, width: 28, textAlign: 'right' },
+  stileBtns: { position: 'absolute', top: 6, right: 6, flexDirection: 'row', gap: 6 },
+  rbtn: { width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(10,8,28,0.85)', borderWidth: 1, borderColor: 'rgba(190,180,255,0.35)', alignItems: 'center', justifyContent: 'center' },
   macroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 },
-  macroName: { fontFamily: f.semi, fontSize: 11.5, color: c.muted, letterSpacing: 1.2, textTransform: 'uppercase' },
-  macroVal: { fontFamily: f.bold, fontSize: 13, color: c.ink },
+  macroName: { fontFamily: f.medium, fontSize: 12.5, color: c.ink },
+  macroVal: { fontFamily: f.bold, fontSize: 12.5, color: c.ink },
   macroGoal: { fontFamily: f.medium, color: c.muted },
   subName: { fontFamily: f.semi, fontSize: 10.5, color: c.soft, letterSpacing: 1, textTransform: 'uppercase' },
   subVal: { fontFamily: f.bold, fontSize: 11, color: c.muted },
@@ -341,7 +436,7 @@ const mkStyles = () => StyleSheet.create({
   itemName: { fontFamily: f.semi, fontSize: 14, color: c.ink },
   itemSub: { fontFamily: f.regular, fontSize: 12, color: c.muted, marginTop: 1 },
   itemKcal: { fontFamily: f.medium, fontSize: 14, color: c.ink, marginLeft: 10 },
-  btnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 8 },
+  btnRow: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginTop: 4 },
   addBtn: { backgroundColor: c.tint, borderRadius: 4, borderWidth: 1, borderColor: c.panelLine, paddingVertical: 9, paddingHorizontal: 22 },
   addText: { fontFamily: f.bold, fontSize: 12.5, color: c.glowText, letterSpacing: 1.6, textTransform: 'uppercase' },
 });
