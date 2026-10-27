@@ -187,41 +187,17 @@ const TAB_STYLE: Record<Tab, { d: string[]; color: string; fill?: boolean }> = {
 };
 const LABELS: Record<Tab, string> = { home: 'Dashboard', stats: 'Stats', recipes: 'Recipes', profile: 'Profile' };
 
-const BAR_H = 68; // the bar itself
+const BAR_H = 76; // the bar itself
 const OVER = 92; // room above the bar for the gate button, its aura and its flames
 const MARGIN = 12;
 const BTN_R = 33; // gate button radius
 const CANVAS = 140; // square canvas holding the aura / flames, centred on the button
 const CC = { x: 70, y: 86 }; // button centre inside that canvas
 
-function barPath(w: number) {
-  const p = 3, tip = 26, h = BAR_H, cx = w / 2, nr = BTN_R + 9;
-  const dx = Math.sqrt(nr * nr - 16); // the notch is a circle centred 4px above the top edge
-  return `M ${p + tip} ${p} L ${cx - dx} ${p} A ${nr} ${nr} 0 0 0 ${cx + dx} ${p} L ${w - p - tip} ${p} L ${w - p} ${h / 2} L ${w - p - tip} ${h - p} L ${p + tip} ${h - p} L ${p} ${h / 2} Z`;
-}
-const diamond = (x: number, y: number, rx: number, ry: number) => `M ${x} ${y - ry} L ${x + rx} ${y} L ${x} ${y + ry} L ${x - rx} ${y} Z`;
+const BAR_IMG = require('../assets/bar.png'); // supplied artwork 845x141: notch in the middle, ornaments at both tips and the notch foot
 
 function BarShape({ w }: { w: number }) {
-  const d = barPath(w);
-  return (
-    <Svg width={w} height={BAR_H} style={{ position: 'absolute', left: 0, top: OVER }}>
-      <Defs>
-        <LinearGradient id="barFill" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={NAV.fillTop} stopOpacity={1} />
-          <Stop offset="1" stopColor={NAV.fillBot} stopOpacity={1} />
-        </LinearGradient>
-      </Defs>
-      <Path d={d} fill="url(#barFill)" />
-      {/* soft outer glow, then the crisp outline */}
-      <Path d={d} fill="none" stroke={NAV.line} strokeOpacity={0.12} strokeWidth={9} strokeLinejoin="round" />
-      <Path d={d} fill="none" stroke={NAV.line} strokeOpacity={0.28} strokeWidth={4.5} strokeLinejoin="round" />
-      <Path d={d} fill="none" stroke={NAV.line} strokeWidth={1.6} strokeLinejoin="round" />
-      {/* ornaments: the two tips and the foot of the notch */}
-      <Path d={diamond(10, BAR_H / 2, 5.5, 7.5)} fill={NAV.fillBot} stroke={NAV.ring} strokeWidth={1.4} />
-      <Path d={diamond(w - 10, BAR_H / 2, 5.5, 7.5)} fill={NAV.fillBot} stroke={NAV.ring} strokeWidth={1.4} />
-      <Path d={diamond(w / 2, 3 + BTN_R + 9 - 4 - 1, 4.5, 6)} fill={NAV.ring} />
-    </Svg>
-  );
+  return <Image source={BAR_IMG} style={{ position: 'absolute', left: 0, top: OVER, width: w, height: BAR_H }} resizeMode="stretch" fadeDuration={0} />;
 }
 
 const TAB_IMG: Record<Tab, { on: number; off: number }> = {
@@ -247,8 +223,9 @@ const GATE_FRAMES = [
   require('../assets/gate/f08.png'), require('../assets/gate/f09.png'), require('../assets/gate/f10.png'), require('../assets/gate/f11.png'),
 ];
 const GATE_FRAME_MS = 120; // 12 frames, looping (idle pulse / breathing)
-const GATE_SIZE = 116; // sprite is 137px with the ring about 80px wide: scaled so the ring is about the notch size
-const GATE_CX = 58, GATE_CY = 66; // ring centre inside the scaled sprite
+const GATE_SIZE = 89; // sprite is 137px square, recentred on the "+" so it never drifts; the ring (~80px) shows at ~52
+const GATE_CX = (68 / 137) * GATE_SIZE, GATE_CY = (79 / 137) * GATE_SIZE; // the "+" centre inside the scaled sprite
+const GATE_DY = -7; // "+" centre relative to the top edge of the bar
 
 /** The "+" gate: a 12-frame looping sprite (violet ring breathing with flames). Pressed = shrinks and dims. */
 function GateButton({ onPress }: { onPress: () => void }) {
@@ -263,7 +240,7 @@ function GateButton({ onPress }: { onPress: () => void }) {
   const op = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.8] });
   return (
     <Pressable style={s.gate} onPress={onPress} onPressIn={() => to(1)} onPressOut={() => to(0)} accessibilityRole="button" accessibilityLabel="Add">
-      <Animated.View pointerEvents="none" style={{ position: 'absolute', left: BTN_R - GATE_CX, top: BTN_R - GATE_CY, width: GATE_SIZE, height: GATE_SIZE, opacity: op, transform: [{ scale }] }}>
+      <Animated.View pointerEvents="none" style={{ position: 'absolute', left: BTN_R - GATE_CX, top: BTN_R + 1 + GATE_DY - GATE_CY, width: GATE_SIZE, height: GATE_SIZE, opacity: op, transform: [{ scale }] }}>
         <Image source={GATE_FRAMES[frame]} style={{ width: GATE_SIZE, height: GATE_SIZE }} fadeDuration={0} />
       </Animated.View>
     </Pressable>
@@ -280,7 +257,7 @@ export function BottomNav({ tab, onTab, onAdd }: { tab: Tab; onTab: (t: Tab) => 
       <View style={s.tabs} pointerEvents="box-none">
         <TabItem t="home" on={tab === 'home'} onPress={() => onTab('home')} />
         <TabItem t="stats" on={tab === 'stats'} onPress={() => onTab('stats')} />
-        <View style={{ width: 2 * (BTN_R + 9) }} />
+        <View style={{ width: 66 }} />
         <TabItem t="recipes" on={tab === 'recipes'} onPress={() => onTab('recipes')} />
         <TabItem t="profile" on={tab === 'profile'} onPress={() => onTab('profile')} />
       </View>
@@ -297,7 +274,7 @@ const mkStyles = () => StyleSheet.create({
   rule: { height: 1, backgroundColor: c.line, marginTop: 8 },
   ruleBright: { width: 54, height: 2, marginTop: -0.5, backgroundColor: c.glow, ...glow(c.glow, 8, 0.9) },
   navWrap: { position: 'absolute', height: OVER + BAR_H },
-  tabs: { position: 'absolute', left: 16, right: 16, top: OVER, height: BAR_H, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  tabs: { position: 'absolute', left: 20, right: 20, top: OVER, height: BAR_H, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   tab: { width: TAB_W, height: BAR_H, alignItems: 'center', justifyContent: 'center' },
   tabIcon: { width: 64, height: 34, alignItems: 'center', justifyContent: 'center' },
   tabLabel: { fontFamily: f.medium, fontSize: 11.5, marginTop: 1 },
