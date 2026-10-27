@@ -6,13 +6,13 @@ import { askConfirm, notify } from '../dialog';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { c, f, onTheme } from '../theme';
+import { c, f, glow, onTheme, textGlow } from '../theme';
 import { entryBase, EXTRAS, fmt, fmtDay, MEALS, scale, scaleEntry, sum, type Base, type Entry, type MealKey, type Per } from '../domain';
 import { letterOf, lookupBarcode, searchCiqual, searchMine, sortKey, type Food } from '../foods';
 import { readLabel, DEFAULT_MODEL } from '../vision';
 import { FOOD_ICON_LIST, FoodIcon, suggestIcon } from '../foodIcons';
 import { useStore } from '../store';
-import { card, Icon, P, KbView } from '../ui';
+import { Backdrop, card, Icon, P, KbView } from '../ui';
 import { FactorModal } from './Factor';
 
 /** pick: choose a food for something else (e.g. a recipe) instead of logging it; the callback gets the food. */
@@ -462,6 +462,7 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
   return (
     <Modal visible animationType="slide" onRequestClose={back} statusBarTranslucent>
       <KbView style={{ flex: 1, backgroundColor: c.page }}>
+        <Backdrop />
         <View style={[s.head, { paddingTop: top + 10 }]}>
           <Pressable onPress={back} style={s.round} accessibilityLabel="Back"><Icon d={mode === 'main' ? P.x : P.back} size={20} /></Pressable>
           <View style={{ alignItems: 'center' }}>
@@ -470,7 +471,7 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
           </View>
           {mode === 'icons' ? (
             <Pressable onPress={() => setIconEdit((v) => !v)} style={[s.editBtn, iconEdit && { backgroundColor: c.btn }]} accessibilityRole="button" accessibilityLabel="Edit logo names">
-              <Text style={[s.editBtnT, iconEdit && { color: c.lime }]}>{iconEdit ? 'Done' : 'Edit'}</Text>
+              <Text style={[s.editBtnT, iconEdit && { color: c.glowText }]}>{iconEdit ? 'Done' : 'Edit'}</Text>
             </Pressable>
           ) : <View style={{ width: 42 }} />}
         </View>
@@ -480,7 +481,7 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
             <View style={s.tabs}>
               {([['search', 'Search'], ['mine', 'My Foods'], ['recipes', 'Recipes'], ['meals', 'Meals']] as const).filter(([k]) => !(target.pick && (k === 'meals' || k === 'recipes'))).map(([k, l]) => (
                 <Pressable key={k} onPress={() => setTab(k)} style={[s.tabB, tab === k && { backgroundColor: c.btn }]} accessibilityRole="button">
-                  <Text style={[s.tabT, tab === k && { color: c.lime }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{l}</Text>
+                  <Text style={[s.tabT, tab === k && { color: c.glowText }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{l}</Text>
                 </Pressable>
               ))}
             </View>
@@ -495,10 +496,10 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
                     placeholder="Search a food"
                     placeholderTextColor={c.soft}
                     returnKeyType="search"
-                    selectionColor={c.lime}
+                    selectionColor={c.glow}
                     autoCorrect={false}
                   />
-                  <Pressable onPress={() => { setMiss(null); scanned.current = false; setMode('scan'); }} style={s.scanBtn} accessibilityLabel="Scan barcode"><Icon d={P.scan} size={22} /></Pressable>
+                  <Pressable onPress={() => { setMiss(null); scanned.current = false; setMode('scan'); }} style={s.scanBtn} accessibilityLabel="Scan barcode"><Icon d={P.scan} size={22} color={c.onGlow} /></Pressable>
                 </View>
                 <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 6, paddingBottom: Math.max(bottom, 16) + 20 }}>
                   {query.trim().length === 0 && (
@@ -506,12 +507,12 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
                       <View style={{ flexDirection: 'row', gap: 10 }}>
                         {!target.pick && (
                           <Pressable onPress={() => { setLabelMsg(''); setMode('quick'); }} style={[s.quick, card, { flex: 1 }]} accessibilityRole="button">
-                            <Icon d={P.flame} size={18} color={c.limeText} sw={2.4} />
+                            <Icon d={P.flame} size={18} color={c.glowText} sw={2.4} />
                             <Text style={s.quickT}>Quick add</Text>
                           </Pressable>
                         )}
                         <Pressable onPress={() => openCreate('main')} style={[s.quick, card, { flex: 1 }]} accessibilityRole="button">
-                          <Icon d={P.plus} size={18} color={c.limeText} sw={2.6} />
+                          <Icon d={P.plus} size={18} color={c.glowText} sw={2.6} />
                           <Text style={s.quickT}>Create food</Text>
                         </Pressable>
                       </View>
@@ -550,7 +551,7 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
             {tab === 'recipes' && (
               <>
                 <View style={s.searchRow}>
-                  <TextInput style={s.search} value={recQ} onChangeText={setRecQ} placeholder="Search a recipe or an ingredient" placeholderTextColor={c.soft} selectionColor={c.lime} autoCorrect={false} accessibilityLabel="Search recipes" />
+                  <TextInput style={s.search} value={recQ} onChangeText={setRecQ} placeholder="Search a recipe or an ingredient" placeholderTextColor={c.soft} selectionColor={c.glow} autoCorrect={false} accessibilityLabel="Search recipes" />
                 </View>
                 <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 6, paddingBottom: Math.max(bottom, 16) + 20 }}>
                   {state.recipes.length === 0 && <Text style={s.hint}>Your recipes will appear here: create one in the Recipes tab.</Text>}
@@ -561,7 +562,7 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
                         <Text style={s.recName} numberOfLines={1}>{r.title || 'Untitled recipe'}</Text>
                         <Text style={s.resSub} numberOfLines={1}>{r.cat === 'Draft' ? tr('Draft') : tr(r.cat)}</Text>
                       </View>
-                      <Icon d={P.plus} size={18} color={c.limeText} sw={2.6} />
+                      <Icon d={P.plus} size={18} color={c.glowText} sw={2.6} />
                     </Pressable>
                   ))}
                   {state.recipes.length > 0 && recipeList.length === 0 && <Text style={s.hint}>No recipe found.</Text>}
@@ -643,23 +644,23 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 12 }}>
             <MealChips meal={meal} setMeal={setMeal} />
             <Pressable onPress={() => openLabel('quick')} style={[s.labelBtn, card]} accessibilityRole="button" accessibilityLabel="Autofill from a nutrition label">
-              <Icon d={P.camera} size={20} color={c.limeText} sw={2.2} />
+              <Icon d={P.camera} size={20} color={c.glowText} sw={2.2} />
               <View style={{ flex: 1 }}>
                 <Text style={s.quickT}>Autofill</Text>
                 <Text style={s.resSub}>Photograph a nutrition label to fill the values</Text>
               </View>
             </Pressable>
-            {labelMsg ? <Text style={[s.hintS, { color: /^Values/.test(labelMsg) ? c.limeText : c.red }]}>{labelMsg}</Text> : null}
-            <TextInput style={s.input} value={qName} onChangeText={setQName} placeholder="Name (optional)" placeholderTextColor={c.soft} maxLength={40} selectionColor={c.lime} />
+            {labelMsg ? <Text style={[s.hintS, { color: /^Values/.test(labelMsg) ? c.glowText : c.red }]}>{labelMsg}</Text> : null}
+            <TextInput style={s.input} value={qName} onChangeText={setQName} placeholder="Name (optional)" placeholderTextColor={c.soft} maxLength={40} selectionColor={c.glow} />
             <View style={s.kcalBox}>
-              <TextInput style={s.kcalInput} value={qKcal} onChangeText={setQKcal} placeholder="0" placeholderTextColor={c.soft} keyboardType="number-pad" maxLength={4} selectionColor={c.lime} autoFocus />
+              <TextInput style={s.kcalInput} value={qKcal} onChangeText={setQKcal} placeholder="0" placeholderTextColor={c.soft} keyboardType="number-pad" maxLength={4} selectionColor={c.glow} autoFocus />
               <Text style={s.unit}>kcal</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               {([['Protein', qP, setQP], ['Carbs', qC, setQC], ['Fat', qF, setQF]] as const).map(([l, v, set]) => (
                 <View key={l} style={s.macro}>
                   <Text style={s.macroL}>{l} (g)</Text>
-                  <TextInput style={s.macroIn} value={v} onChangeText={set} placeholder="0" placeholderTextColor={c.soft} keyboardType="decimal-pad" maxLength={4} selectionColor={c.lime} />
+                  <TextInput style={s.macroIn} value={v} onChangeText={set} placeholder="0" placeholderTextColor={c.soft} keyboardType="decimal-pad" maxLength={4} selectionColor={c.glow} />
                 </View>
               ))}
             </View>
@@ -667,7 +668,7 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
               {EXTRAS.map((x, i) => (
                 <View key={x.k} style={[s.macro, { flexBasis: '47%' }]}>
                   <Text style={s.macroL}>{x.label} (g, optional)</Text>
-                  <TextInput style={s.macroIn} value={qX[i]} onChangeText={(t) => setQX((v) => v.map((y, j) => (j === i ? t : y)))} placeholder="—" placeholderTextColor={c.soft} keyboardType="decimal-pad" maxLength={5} selectionColor={c.lime} accessibilityLabel={x.label} />
+                  <TextInput style={s.macroIn} value={qX[i]} onChangeText={(t) => setQX((v) => v.map((y, j) => (j === i ? t : y)))} placeholder="—" placeholderTextColor={c.soft} keyboardType="decimal-pad" maxLength={5} selectionColor={c.glow} accessibilityLabel={x.label} />
                 </View>
               ))}
             </View>
@@ -679,14 +680,14 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 12, paddingBottom: Math.max(bottom, 16) + 30 }}>
             {!editKey && (
               <Pressable onPress={() => openLabel('create')} style={[s.labelBtn, card]} accessibilityRole="button" accessibilityLabel="Scan nutrition label">
-                <Icon d={P.camera} size={20} color={c.limeText} sw={2.2} />
+                <Icon d={P.camera} size={20} color={c.glowText} sw={2.2} />
                 <View style={{ flex: 1 }}>
                   <Text style={s.quickT}>Scan the nutrition label</Text>
                   <Text style={s.resSub}>Photo read by Groq AI (your API key)</Text>
                 </View>
               </Pressable>
             )}
-            {labelMsg ? <Text style={[s.hintS, { color: /^Values|^Only/.test(labelMsg) ? c.limeText : c.red }]}>{labelMsg}</Text> : null}
+            {labelMsg ? <Text style={[s.hintS, { color: /^Values|^Only/.test(labelMsg) ? c.glowText : c.red }]}>{labelMsg}</Text> : null}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <Pressable onPress={() => { setIconQ(''); setMode('icons'); }} style={[s.iconPick, card]} accessibilityRole="button" accessibilityLabel="Choose a logo">
                 <FoodIcon name={nName} icon={nIcon} size={52} />
@@ -699,29 +700,29 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
                 placeholder="Food name"
                 placeholderTextColor={c.soft}
                 maxLength={60}
-                selectionColor={c.lime}
+                selectionColor={c.glow}
                 autoFocus
               />
             </View>
-            <TextInput style={s.input} value={nBrand} onChangeText={setNBrand} placeholder="Brand (optional)" placeholderTextColor={c.soft} maxLength={40} selectionColor={c.lime} />
+            <TextInput style={s.input} value={nBrand} onChangeText={setNBrand} placeholder="Brand (optional)" placeholderTextColor={c.soft} maxLength={40} selectionColor={c.glow} />
             <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
               <Text style={s.fieldL}>Values per</Text>
-              <TextInput style={s.basisIn} value={nBasis} onChangeText={setNBasis} keyboardType="decimal-pad" maxLength={6} selectTextOnFocus selectionColor={c.lime} accessibilityLabel="Quantity the values are for" />
+              <TextInput style={s.basisIn} value={nBasis} onChangeText={setNBasis} keyboardType="decimal-pad" maxLength={6} selectTextOnFocus selectionColor={c.glow} accessibilityLabel="Quantity the values are for" />
               {(['g', 'ml'] as const).map((u) => (
                 <Pressable key={u} onPress={() => setNUnit(u)} style={[s.mchip, nUnit === u && { backgroundColor: c.btn }]}>
-                  <Text style={[s.mchipText, nUnit === u && { color: c.lime }]}>{u}</Text>
+                  <Text style={[s.mchipText, nUnit === u && { color: c.glowText }]}>{u}</Text>
                 </Pressable>
               ))}
             </View>
             <View style={s.kcalBox}>
-              <TextInput style={s.kcalInput} value={nKcal} onChangeText={setNKcal} placeholder="0" placeholderTextColor={c.soft} keyboardType="decimal-pad" maxLength={5} selectionColor={c.lime} />
+              <TextInput style={s.kcalInput} value={nKcal} onChangeText={setNKcal} placeholder="0" placeholderTextColor={c.soft} keyboardType="decimal-pad" maxLength={5} selectionColor={c.glow} />
               <Text style={s.unit}>kcal</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               {([['Protein', nP, setNP], ['Carbs', nC, setNC], ['Fat', nF, setNF]] as const).map(([l, v, set]) => (
                 <View key={l} style={s.macro}>
                   <Text style={s.macroL}>{l} (g)</Text>
-                  <TextInput style={s.macroIn} value={v} onChangeText={set} placeholder="0" placeholderTextColor={c.soft} keyboardType="decimal-pad" maxLength={5} selectionColor={c.lime} />
+                  <TextInput style={s.macroIn} value={v} onChangeText={set} placeholder="0" placeholderTextColor={c.soft} keyboardType="decimal-pad" maxLength={5} selectionColor={c.glow} />
                 </View>
               ))}
             </View>
@@ -729,18 +730,18 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
               {EXTRAS.map((x, i) => (
                 <View key={x.k} style={[s.macro, { flexBasis: '47%' }]}>
                   <Text style={s.macroL}>{x.label} (g, optional)</Text>
-                  <TextInput style={s.macroIn} value={nX[i]} onChangeText={(t) => setNX((v) => v.map((y, j) => (j === i ? t : y)))} placeholder="—" placeholderTextColor={c.soft} keyboardType="decimal-pad" maxLength={5} selectionColor={c.lime} accessibilityLabel={x.label} />
+                  <TextInput style={s.macroIn} value={nX[i]} onChangeText={(t) => setNX((v) => v.map((y, j) => (j === i ? t : y)))} placeholder="—" placeholderTextColor={c.soft} keyboardType="decimal-pad" maxLength={5} selectionColor={c.glow} accessibilityLabel={x.label} />
                 </View>
               ))}
             </View>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={[s.macro, { flex: 1 }]}>
                 <Text style={s.macroL}>1 portion ({nUnit}, optional)</Text>
-                <TextInput style={s.macroIn} value={nPortion} onChangeText={setNPortion} placeholder="—" placeholderTextColor={c.soft} keyboardType="decimal-pad" maxLength={5} selectionColor={c.lime} />
+                <TextInput style={s.macroIn} value={nPortion} onChangeText={setNPortion} placeholder="—" placeholderTextColor={c.soft} keyboardType="decimal-pad" maxLength={5} selectionColor={c.glow} />
               </View>
               <View style={[s.macro, { flex: 1.3 }]}>
                 <Text style={s.macroL}>Barcode (optional)</Text>
-                <TextInput style={s.macroIn} value={nCode} onChangeText={setNCode} placeholder="—" placeholderTextColor={c.soft} keyboardType="number-pad" maxLength={14} selectionColor={c.lime} />
+                <TextInput style={s.macroIn} value={nCode} onChangeText={setNCode} placeholder="—" placeholderTextColor={c.soft} keyboardType="number-pad" maxLength={14} selectionColor={c.glow} />
               </View>
             </View>
             <Pressable onPress={createFood} disabled={!createOk} style={[s.cta, !createOk && { opacity: 0.35 }]} accessibilityRole="button"><Text style={s.ctaText}>{editKey ? 'Save changes' : 'Save food'}</Text></Pressable>
@@ -800,9 +801,9 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
               <Pressable onPress={() => { setLabelMsg(''); setRes(null); setMode('label'); }} disabled={labelBusy} style={[s.prevBtn, card, labelBusy && { opacity: 0.4 }]} accessibilityRole="button" accessibilityLabel="Retake"><Text style={s.quickT}>Retake</Text></Pressable>
               <Pressable onPress={openGallery} disabled={labelBusy} style={[s.prevBtn, card, labelBusy && { opacity: 0.4 }]} accessibilityRole="button" accessibilityLabel="Other photo"><Text style={s.quickT}>Gallery</Text></Pressable>
               {res ? (
-                <Pressable onPress={useScanned} disabled={labelBusy} style={[s.prevBtn, { backgroundColor: c.lime }]} accessibilityRole="button" accessibilityLabel="Continue"><Text style={[s.quickT, { color: c.onLime }]}>Continue</Text></Pressable>
+                <Pressable onPress={useScanned} disabled={labelBusy} style={[s.prevBtn, { backgroundColor: c.glow }]} accessibilityRole="button" accessibilityLabel="Continue"><Text style={[s.quickT, { color: c.onGlow }]}>Continue</Text></Pressable>
               ) : (
-                <Pressable onPress={sendLabel} disabled={labelBusy} style={[s.prevBtn, { backgroundColor: c.lime }, labelBusy && { opacity: 0.4 }]} accessibilityRole="button" accessibilityLabel="Send"><Text style={[s.quickT, { color: c.onLime }]}>Send</Text></Pressable>
+                <Pressable onPress={sendLabel} disabled={labelBusy} style={[s.prevBtn, { backgroundColor: c.glow }, labelBusy && { opacity: 0.4 }]} accessibilityRole="button" accessibilityLabel="Send"><Text style={[s.quickT, { color: c.onGlow }]}>Send</Text></Pressable>
               )}
             </View>
           </View>
@@ -810,7 +811,7 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
 
         {mode === 'icons' && (
           <View style={{ flex: 1 }}>
-            <TextInput style={[s.input, { marginHorizontal: 20, marginBottom: 8 }]} value={iconQ} onChangeText={setIconQ} placeholder="Filter (English or French names)" placeholderTextColor={c.soft} selectionColor={c.lime} autoCorrect={false} />
+            <TextInput style={[s.input, { marginHorizontal: 20, marginBottom: 8 }]} value={iconQ} onChangeText={setIconQ} placeholder="Filter (English or French names)" placeholderTextColor={c.soft} selectionColor={c.glow} autoCorrect={false} />
             {iconEdit && <Text style={[s.hintS, { marginHorizontal: 20, marginBottom: 6 }]}>Tap a logo to rename it or remove its name.</Text>}
             <FlatList
               data={iconList}
@@ -833,12 +834,12 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
             {renIcon && (
               <View style={[s.renBox, { backgroundColor: c.card }]}>
                 <View style={{ alignItems: 'center' }}><FoodIcon name="" icon={renIcon.key} size={64} /></View>
-                <TextInput style={s.input} value={renIcon.name} onChangeText={(v) => setRenIcon({ ...renIcon, name: v })} placeholder="Logo name" placeholderTextColor={c.soft} selectionColor={c.lime} autoFocus maxLength={40} accessibilityLabel="Logo name" />
+                <TextInput style={s.input} value={renIcon.name} onChangeText={(v) => setRenIcon({ ...renIcon, name: v })} placeholder="Logo name" placeholderTextColor={c.soft} selectionColor={c.glow} autoFocus maxLength={40} accessibilityLabel="Logo name" />
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <Pressable onPress={() => { setSettings({ iconNames: { ...iconNames, [renIcon.key]: '' } }); setRenIcon(null); }} style={[s.renBtn, { backgroundColor: c.page }]} accessibilityRole="button"><Text style={[s.renT, { color: c.red }]}>Remove name</Text></Pressable>
                   <Pressable onPress={() => { const n = { ...iconNames }; delete n[renIcon.key]; setSettings({ iconNames: n }); setRenIcon(null); }} style={[s.renBtn, { backgroundColor: c.page }]} accessibilityRole="button"><Text style={[s.renT, { color: c.ink }]}>Reset</Text></Pressable>
                 </View>
-                <Pressable onPress={() => { setSettings({ iconNames: { ...iconNames, [renIcon.key]: renIcon.name.trim() } }); setRenIcon(null); }} style={s.renSave} accessibilityRole="button"><Text style={[s.renT, { color: c.lime }]}>Save</Text></Pressable>
+                <Pressable onPress={() => { setSettings({ iconNames: { ...iconNames, [renIcon.key]: renIcon.name.trim() } }); setRenIcon(null); }} style={s.renSave} accessibilityRole="button"><Text style={[s.renT, { color: c.glowText }]}>Save</Text></Pressable>
               </View>
             )}
           </KbView>
@@ -853,17 +854,17 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
                 {food.brand ? <Text style={s.resSub}>{food.brand}</Text> : null}
               </View>
               {food.fk && food.base.size === 100 && (
-                <Pressable onPress={openEdit} style={s.pencil} hitSlop={6} accessibilityRole="button" accessibilityLabel="Edit nutrition values"><Icon d={P.edit} size={18} color={c.limeText} sw={2.2} /></Pressable>
+                <Pressable onPress={openEdit} style={s.pencil} hitSlop={6} accessibilityRole="button" accessibilityLabel="Edit nutrition values"><Icon d={P.edit} size={18} color={c.glowText} sw={2.2} /></Pressable>
               )}
             </View>
             {!editing && <MealChips meal={meal} setMeal={setMeal} />}
             <View style={[s.qtyBox, card]}>
               <Pressable onPress={() => setQty(String(Math.max(0, +(q - step).toFixed(2))))} style={s.stepper} hitSlop={6} accessibilityLabel="Less"><Icon d={P.minus} size={20} sw={2.6} /></Pressable>
               <View style={{ flex: 1, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' }}>
-                <TextInput style={s.qtyIn} value={qty} onChangeText={setQty} keyboardType="decimal-pad" maxLength={6} selectionColor={c.lime} selectTextOnFocus accessibilityLabel="Quantity" />
+                <TextInput style={s.qtyIn} value={qty} onChangeText={setQty} keyboardType="decimal-pad" maxLength={6} selectionColor={c.glow} selectTextOnFocus accessibilityLabel="Quantity" />
                 <Text style={s.unit}>{unitLabel(food.base.unit, q)}</Text>
               </View>
-              <Pressable onPress={() => setQty(String(+(q + step).toFixed(2)))} style={[s.stepper, { backgroundColor: c.btn }]} hitSlop={6} accessibilityLabel="More"><Icon d={P.plus} size={20} sw={2.6} color={c.lime} /></Pressable>
+              <Pressable onPress={() => setQty(String(+(q + step).toFixed(2)))} style={[s.stepper, { backgroundColor: c.btn }]} hitSlop={6} accessibilityLabel="More"><Icon d={P.plus} size={20} sw={2.6} color={c.glow} /></Pressable>
             </View>
             {food.portion && (
               <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -906,8 +907,8 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
 
 function TorchBtn({ on, toggle }: { on: boolean; toggle: () => void }) {
   return (
-    <Pressable onPress={toggle} style={[s.torch, on && { backgroundColor: c.lime }]} hitSlop={8} accessibilityRole="button" accessibilityLabel={on ? 'Turn flashlight off' : 'Turn flashlight on'}>
-      <Icon d={P.zap} size={22} color={on ? c.ink : '#fff'} fill={on ? c.ink : 'none'} sw={2.2} />
+    <Pressable onPress={toggle} style={[s.torch, on && { backgroundColor: c.glow }]} hitSlop={8} accessibilityRole="button" accessibilityLabel={on ? 'Turn flashlight off' : 'Turn flashlight on'}>
+      <Icon d={P.zap} size={22} color={on ? c.onGlow : '#fff'} fill={on ? c.onGlow : 'none'} sw={2.2} />
     </Pressable>
   );
 }
@@ -918,7 +919,7 @@ function MealChips({ meal, setMeal }: { meal: MealKey; setMeal: (m: MealKey) => 
     <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flexGrow: 0, flexShrink: 1, maxWidth: '100%', alignSelf: 'stretch' }} contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
       {MEALS.filter((m) => m.key === meal || state.settings.meals.includes(m.key)).map((m) => (
         <Pressable key={m.key} onPress={() => setMeal(m.key)} style={[s.mchip, meal === m.key && { backgroundColor: c.btn }]}>
-          <Text style={[s.mchipText, meal === m.key && { color: c.lime }]}>{m.label}</Text>
+          <Text style={[s.mchipText, meal === m.key && { color: c.glowText }]}>{m.label}</Text>
         </Pressable>
       ))}
     </ScrollView>
@@ -927,26 +928,26 @@ function MealChips({ meal, setMeal }: { meal: MealKey; setMeal: (m: MealKey) => 
 
 const mkStyles = () => StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 10 },
-  renWrap: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 24 },
-  renBox: { borderRadius: 26, padding: 18, gap: 12 },
-  renBtn: { flex: 1, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
-  renSave: { height: 50, borderRadius: 25, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center' },
+  renWrap: { flex: 1, backgroundColor: 'rgba(2,4,14,0.8)', justifyContent: 'center', padding: 24 },
+  renBox: { borderRadius: 6, padding: 18, gap: 12, borderWidth: 1, borderColor: c.panelLine},
+  renBtn: { flex: 1, height: 46, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  renSave: { height: 50, borderRadius: 6, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.glow},
   renT: { fontFamily: f.bold, fontSize: 14.5 },
-  editBtn: { ...card, minWidth: 42, height: 42, borderRadius: 21, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
+  editBtn: { ...card, minWidth: 42, height: 42, borderRadius: 6, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
   editBtnT: { fontFamily: f.bold, fontSize: 13.5, color: c.ink },
-  round: { width: 42, height: 42, borderRadius: 21, ...card, alignItems: 'center', justifyContent: 'center' },
+  round: { width: 42, height: 42, borderRadius: 6, ...card, alignItems: 'center', justifyContent: 'center' },
   h: { fontFamily: f.extra, fontSize: 20, color: c.ink, letterSpacing: -0.4 },
   headSub: { fontFamily: f.semi, fontSize: 12.5, color: c.muted, marginTop: 1 },
   tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 12 },
-  tabB: { ...card, flex: 1, borderRadius: 20, paddingVertical: 10, paddingHorizontal: 2, alignItems: 'center' },
+  tabB: { ...card, flex: 1, borderRadius: 6, paddingVertical: 10, paddingHorizontal: 2, alignItems: 'center' },
   recRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 9 },
   recName: { fontFamily: f.medium, fontSize: 15.5, color: c.ink },
   tabT: { fontFamily: f.bold, fontSize: 12.5, color: c.ink },
   searchRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 8 },
-  search: { ...card, flex: 1, borderRadius: 22, paddingHorizontal: 18, height: 52, fontFamily: f.medium, fontSize: 16, color: c.ink },
-  scanBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: c.lime, alignItems: 'center', justifyContent: 'center' },
-  quick: { borderRadius: 20, paddingHorizontal: 14, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  quickT: { fontFamily: f.bold, fontSize: 14.5, color: c.limeText },
+  search: { ...card, flex: 1, borderRadius: 6, paddingHorizontal: 18, height: 52, fontFamily: f.medium, fontSize: 16, color: c.ink },
+  scanBtn: { width: 52, height: 52, borderRadius: 6, backgroundColor: c.glow, alignItems: 'center', justifyContent: 'center' },
+  quick: { borderRadius: 6, paddingHorizontal: 14, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  quickT: { fontFamily: f.bold, fontSize: 14.5, color: c.glowText },
   sect: { fontFamily: f.extra, fontSize: 16, color: c.ink, marginTop: 18, marginBottom: 2 },
   hint: { fontFamily: f.regular, fontSize: 14.5, color: c.muted, marginTop: 18, lineHeight: 21 },
   hintS: { fontFamily: f.medium, fontSize: 13, color: c.muted },
@@ -958,71 +959,71 @@ const mkStyles = () => StyleSheet.create({
   resKcal: { fontFamily: f.extra, fontSize: 16, color: c.ink },
   mineHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
   letterHead: { height: HEAD_H, justifyContent: 'flex-end', paddingBottom: 4 },
-  letterHeadT: { fontFamily: f.extra, fontSize: 15, color: c.limeText },
+  letterHeadT: { fontFamily: f.extra, fontSize: 15, color: c.glowText },
   bar: { position: 'absolute', right: 0, top: 4, bottom: 8, width: 30, paddingVertical: 2 },
   barL: { fontFamily: f.bold, fontSize: 10.5, color: c.muted, lineHeight: 13 },
   bubble: { position: 'absolute', right: 48, top: '40%', width: 64, height: 64, borderRadius: 32, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center' },
-  bubbleT: { fontFamily: f.extra, fontSize: 28, color: c.lime },
-  mealCard: { borderRadius: 22, padding: 14 },
+  bubbleT: { fontFamily: f.extra, fontSize: 28, color: c.glow },
+  mealCard: { borderRadius: 6, padding: 14 },
   mealDay: { fontFamily: f.extra, fontSize: 16, color: c.ink },
-  copyBtn: { backgroundColor: c.tint, borderRadius: 18, paddingHorizontal: 18, paddingVertical: 9 },
-  copyT: { fontFamily: f.bold, fontSize: 13.5, color: c.limeText },
+  copyBtn: { backgroundColor: c.tint, borderRadius: 4, paddingHorizontal: 18, paddingVertical: 9 },
+  copyT: { fontFamily: f.bold, fontSize: 13.5, color: c.glowText },
   mealItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   mealItemName: { flex: 1, fontFamily: f.medium, fontSize: 13.5, color: c.ink },
   mealItemKcal: { fontFamily: f.bold, fontSize: 13.5, color: c.muted },
-  camWrap: { flex: 1, margin: 20, borderRadius: 28, overflow: 'hidden', backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' },
-  frame: { width: 260, height: 150, borderRadius: 20, borderWidth: 3, borderColor: c.lime },
+  camWrap: { flex: 1, margin: 20, borderRadius: 6, overflow: 'hidden', backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' },
+  frame: { width: 260, height: 150, borderRadius: 6, borderWidth: 3, borderColor: c.glow },
   center: { flex: 1, padding: 30, justifyContent: 'center' },
-  link: { fontFamily: f.bold, fontSize: 14, color: c.limeText },
+  link: { fontFamily: f.bold, fontSize: 14, color: c.glowText },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  mchip: { ...card, borderRadius: 20, paddingHorizontal: 13, paddingVertical: 9 },
+  mchip: { ...card, borderRadius: 6, paddingHorizontal: 13, paddingVertical: 9 },
   mchipText: { fontFamily: f.bold, fontSize: 13, color: c.ink },
-  input: { ...card, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 13, fontFamily: f.medium, fontSize: 15, color: c.ink },
+  input: { ...card, borderRadius: 4, paddingHorizontal: 16, paddingVertical: 13, fontFamily: f.medium, fontSize: 15, color: c.ink },
   fieldL: { fontFamily: f.semi, fontSize: 13.5, color: c.muted, marginRight: 4 },
   torch: { position: 'absolute', top: 14, right: 14, width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
-  labelBtn: { borderRadius: 20, paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  labelFrame: { width: '86%', height: '70%', borderRadius: 20, borderWidth: 3, borderColor: c.lime },
+  labelBtn: { borderRadius: 6, paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  labelFrame: { width: '86%', height: '70%', borderRadius: 6, borderWidth: 3, borderColor: c.glow },
   shutter: { alignSelf: 'center', width: 74, height: 74, borderRadius: 37, borderWidth: 4, borderColor: c.btn, alignItems: 'center', justifyContent: 'center', marginTop: 14 },
-  resPhoto: { height: 170, borderRadius: 20, backgroundColor: '#000' },
+  resPhoto: { height: 170, borderRadius: 6, backgroundColor: '#000' },
   resTitle: { fontFamily: f.extra, fontSize: 20, color: c.ink },
-  resCard: { borderRadius: 20, paddingHorizontal: 16 },
+  resCard: { borderRadius: 6, paddingHorizontal: 16 },
   resRow: { flexDirection: 'row', alignItems: 'center', minHeight: 50, gap: 8 },
   resLab: { fontFamily: f.semi, fontSize: 15, color: c.ink, minWidth: 110 },
   resVal: { flex: 1, textAlign: 'right', fontFamily: f.extra, fontSize: 16, color: c.ink, paddingVertical: 8 },
   resUnit: { fontFamily: f.semi, fontSize: 14, color: c.muted, width: 34 },
-  basisIn: { minWidth: 64, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 14, paddingHorizontal: 10, height: 36, textAlign: 'center', fontFamily: f.extra, fontSize: 15, color: c.ink },
+  basisIn: { minWidth: 64, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 4, paddingHorizontal: 10, height: 36, textAlign: 'center', fontFamily: f.extra, fontSize: 15, color: c.ink },
   readout: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '50%', backgroundColor: 'rgba(0,0,0,0.75)', paddingHorizontal: 18, paddingVertical: 12, justifyContent: 'center' },
   roTitle: { fontFamily: f.extra, fontSize: 16, color: '#fff', textShadowColor: 'rgba(0,0,0,0.9)', textShadowRadius: 4 },
   roSub: { fontFamily: f.semi, fontSize: 12, color: '#fff', marginBottom: 6, textShadowColor: 'rgba(0,0,0,0.9)', textShadowRadius: 4 },
   roRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
   roL: { fontFamily: f.semi, fontSize: 14, color: '#fff', textShadowColor: 'rgba(0,0,0,0.9)', textShadowRadius: 4 },
   roV: { fontFamily: f.extra, fontSize: 14, color: '#fff', textShadowColor: 'rgba(0,0,0,0.9)', textShadowRadius: 4 },
-  galBtn: { position: 'absolute', left: 28, width: 56, height: 56, borderRadius: 28, backgroundColor: c.card, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: c.lime },
-  prevBtn: { flex: 1, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
-  shutterIn: { width: 54, height: 54, borderRadius: 27, backgroundColor: c.lime },
-  pencil: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.tint, alignItems: 'center', justifyContent: 'center' },
-  iconPick: { width: 84, borderRadius: 20, paddingVertical: 8, alignItems: 'center' },
-  iconPickT: { fontFamily: f.bold, fontSize: 11.5, color: c.limeText, marginTop: 2 },
-  iconCell: { width: '25%', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 2, borderRadius: 16 },
+  galBtn: { position: 'absolute', left: 28, width: 56, height: 56, borderRadius: 28, backgroundColor: c.card, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: c.glow },
+  prevBtn: { flex: 1, height: 52, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  shutterIn: { width: 54, height: 54, borderRadius: 27, backgroundColor: c.glow },
+  pencil: { width: 40, height: 40, borderRadius: 6, backgroundColor: c.tint, alignItems: 'center', justifyContent: 'center' },
+  iconPick: { width: 84, borderRadius: 6, paddingVertical: 8, alignItems: 'center' },
+  iconPickT: { fontFamily: f.bold, fontSize: 11.5, color: c.glowText, marginTop: 2 },
+  iconCell: { width: '25%', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 2, borderRadius: 4 },
   iconCellT: { fontFamily: f.medium, fontSize: 10.5, color: c.muted, textAlign: 'center', marginTop: 3 },
-  kcalBox: { ...card, borderRadius: 22, paddingHorizontal: 18, paddingVertical: 8, flexDirection: 'row', alignItems: 'baseline' },
+  kcalBox: { ...card, borderRadius: 6, paddingHorizontal: 18, paddingVertical: 8, flexDirection: 'row', alignItems: 'baseline' },
   kcalInput: { flex: 1, minWidth: 0, fontFamily: f.extra, fontSize: 32, color: c.ink, letterSpacing: -0.8 },
   unit: { fontFamily: f.semi, fontSize: 15, color: c.muted },
-  macro: { ...card, flex: 1, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8 },
+  macro: { ...card, flex: 1, borderRadius: 4, paddingHorizontal: 12, paddingVertical: 8 },
   macroL: { fontFamily: f.semi, fontSize: 11, color: c.muted },
   macroIn: { fontFamily: f.bold, fontSize: 18, color: c.ink, paddingVertical: 2 },
   foodName: { fontFamily: f.extra, fontSize: 22, color: c.ink, letterSpacing: -0.5, lineHeight: 28 },
-  qtyBox: { borderRadius: 26, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  stepper: { width: 52, height: 52, borderRadius: 26, backgroundColor: c.page, alignItems: 'center', justifyContent: 'center' },
+  qtyBox: { borderRadius: 6, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  stepper: { width: 52, height: 52, borderRadius: 6, backgroundColor: c.page, alignItems: 'center', justifyContent: 'center' },
   qtyIn: { fontFamily: f.extra, fontSize: 38, color: c.ink, letterSpacing: -1, minWidth: 70, textAlign: 'right', paddingVertical: 0 },
-  pchip: { backgroundColor: c.tint, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9 },
-  pchipT: { fontFamily: f.bold, fontSize: 12.5, color: c.limeText },
-  sum: { backgroundColor: c.lime, borderRadius: 26, padding: 18 },
-  sumBig: { fontFamily: f.extra, fontSize: 34, color: c.onLime, letterSpacing: -1 },
+  pchip: { backgroundColor: c.tint, borderRadius: 4, paddingHorizontal: 14, paddingVertical: 9 },
+  pchipT: { fontFamily: f.bold, fontSize: 12.5, color: c.glowText },
+  sum: { backgroundColor: c.panel, borderWidth: 1, borderColor: c.panelLine, borderRadius: 4, padding: 18, ...glow(c.glow, 14, 0.3) },
+  sumBig: { fontFamily: f.extra, fontSize: 32, color: c.ink, letterSpacing: 0.5, ...textGlow(c.glow, 14) },
   sumUnit: { fontFamily: f.bold, fontSize: 15, letterSpacing: 0 },
-  sumMacros: { fontFamily: f.semi, fontSize: 13, color: c.onLime, opacity: 0.8, marginTop: 4 },
-  cta: { height: 56, borderRadius: 28, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center' },
-  ctaText: { fontFamily: f.bold, fontSize: 16, color: c.lime },
+  sumMacros: { fontFamily: f.semi, fontSize: 13, color: c.muted, marginTop: 4 },
+  cta: { height: 56, borderRadius: 6, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.glow},
+  ctaText: { fontFamily: f.bold, fontSize: 16, color: '#fff', letterSpacing: 1.6, textTransform: 'uppercase' },
 });
 let s = mkStyles();
 onTheme(() => { s = mkStyles(); });

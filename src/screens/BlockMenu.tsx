@@ -29,7 +29,7 @@ export function BlockMenu({ anchorY, items, onClose }: { anchorY: number | null;
   );
 }
 
-const PROT = '#6C63E0', CARB = '#5BAEDC', FAT = '#F6B26B';
+const PROT = '#A06BFF', CARB = '#35D4FF', FAT = '#F5B83D';
 
 /** Macro split of one meal block. */
 export function MealSummary({ visible, label, entries, budget, onClose }: { visible: boolean; label: string; entries: Entry[]; budget: number; onClose: () => void }) {
@@ -77,11 +77,11 @@ export function MealSummary({ visible, label, entries, budget, onClose }: { visi
 }
 
 const mkStyles = () => StyleSheet.create({
-  menu: { position: 'absolute', right: 20, minWidth: 210, borderRadius: 20, overflow: 'hidden', elevation: 12, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
+  menu: { position: 'absolute', right: 20, minWidth: 210, borderRadius: 6, overflow: 'hidden', elevation: 12, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
   txt: { fontFamily: f.semi, fontSize: 15, color: c.ink },
   wrap: { flex: 1, backgroundColor: 'rgba(21,32,15,0.45)', justifyContent: 'center', padding: 24 },
-  card: { backgroundColor: c.card, borderRadius: 28, padding: 22, gap: 10 },
+  card: { backgroundColor: c.card, borderRadius: 6, padding: 22, gap: 10, borderWidth: 1, borderColor: c.panelLine},
   h: { fontFamily: f.extra, fontSize: 20, color: c.ink },
   big: { fontFamily: f.extra, fontSize: 36, color: c.ink, letterSpacing: -1 },
   unit: { fontFamily: f.bold, fontSize: 16, color: c.muted, letterSpacing: 0 },
@@ -93,8 +93,8 @@ const mkStyles = () => StyleSheet.create({
   val: { fontFamily: f.bold, fontSize: 15, color: c.ink, minWidth: 70, textAlign: 'right' },
   pct: { fontFamily: f.semi, fontSize: 14, color: c.muted, minWidth: 44, textAlign: 'right' },
   sep: { height: 1, backgroundColor: c.line, marginVertical: 4 },
-  cta: { height: 52, borderRadius: 26, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-  ctaT: { fontFamily: f.bold, fontSize: 16, color: c.lime },
+  cta: { height: 52, borderRadius: 6, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center', marginTop: 8, borderWidth: 1, borderColor: c.glow},
+  ctaT: { fontFamily: f.bold, fontSize: 16, color: '#fff', letterSpacing: 1.6, textTransform: 'uppercase' },
 });
 let s = mkStyles();
 onTheme(() => { s = mkStyles(); });
@@ -118,8 +118,8 @@ export function MealPick({ visible, title, meals, initial, onPick, onClose }: { 
   );
 }
 const mkMp = () => StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', paddingHorizontal: 24 },
-  box: { backgroundColor: c.card, borderRadius: 26, padding: 18, borderWidth: 1, borderColor: c.line },
+  wrap: { flex: 1, backgroundColor: 'rgba(2,4,14,0.8)', justifyContent: 'center', paddingHorizontal: 24 },
+  box: { backgroundColor: c.card, borderRadius: 6, padding: 18, borderWidth: 1, borderColor: c.panelLine },
   title: { fontFamily: f.extra, fontSize: 18, color: c.ink, marginBottom: 8 },
   row: { paddingVertical: 14 },
   txt: { fontFamily: f.semi, fontSize: 16, color: c.ink },

@@ -112,7 +112,7 @@ export function Profile() {
         <Text style={s.liT}>{title}</Text>
         {sub ? <Text style={s.liS}>{sub}</Text> : null}
       </View>
-      <Switch value={value} onValueChange={onChange} trackColor={{ true: c.lime, false: c.line }} thumbColor="#fff" accessibilityLabel={title} />
+      <Switch value={value} onValueChange={onChange} trackColor={{ true: c.glow, false: c.line }} thumbColor="#fff" accessibilityLabel={title} />
     </View>
   );
   return (
@@ -137,7 +137,7 @@ export function Profile() {
         <View style={[s.li, { flexDirection: 'column', gap: 10 }]}>
           <Text style={s.liT}>Theme</Text>
           <View style={s.segRow}>
-            {([['light', 'Light'], ['dark', 'Dark'], ['system', 'System']] as const).map(([k, l]) => (
+            {([['light', 'Monarch'], ['dark', 'Shadow'], ['system', 'Auto']] as const).map(([k, l]) => (
               <Pressable key={k} onPress={() => setSettings({ theme: k })} style={[s.segB, st.theme === k && { backgroundColor: c.btn }]} accessibilityRole="button" accessibilityState={{ selected: st.theme === k }}>
                 <Text style={[s.segT, st.theme === k && { color: '#fff' }]}>{l}</Text>
               </Pressable>
@@ -162,18 +162,18 @@ export function Profile() {
             <Text style={s.liT}>Sync steps</Text>
             <Text style={s.liS}>Reads your daily steps through Health Connect: Google Fit, Mi Fitness (Mi Band), Samsung Health…</Text>
           </View>
-          <Switch value={state.settings.fit} onValueChange={toggleFit} trackColor={{ true: c.lime, false: c.line }} thumbColor="#fff" />
+          <Switch value={state.settings.fit} onValueChange={toggleFit} trackColor={{ true: c.glow, false: c.line }} thumbColor="#fff" />
         </View>
         {state.settings.fit && (
           <Pressable onPress={() => open('stepGoal')} style={[s.li, { borderTopWidth: 1, borderTopColor: c.line, alignItems: 'center' }]} accessibilityRole="button">
             <Text style={s.liT}>Daily step goal</Text>
-            <Text style={[s.liV, { color: c.limeText }]}>{fmt(st.stepGoal)}</Text>
+            <Text style={[s.liV, { color: c.glowText }]}>{fmt(st.stepGoal)}</Text>
           </Pressable>
         )}
         {state.settings.fit && (
           <Pressable onPress={() => setPicker(true)} style={[s.li, { borderTopWidth: 1, borderTopColor: c.line, alignItems: 'center' }]} accessibilityRole="button">
             <Text style={s.liT}>Steps source</Text>
-            <Text style={[s.liV, { color: c.limeText }]}>{sourceName(state.settings.stepSource)}</Text>
+            <Text style={[s.liV, { color: c.glowText }]}>{sourceName(state.settings.stepSource)}</Text>
           </Pressable>
         )}
       </View>
@@ -182,9 +182,9 @@ export function Profile() {
         <Text style={[s.liS, { paddingTop: 14 }]}>Photograph a nutrition table when you create a food: a Groq vision model reads carbs, sugar, protein, fat, saturated fat, salt and fiber. Get a key on console.groq.com/keys. The key stays on this phone; each photo is sent to Groq.</Text>
         <View style={{ paddingVertical: 12, gap: 8 }}>
           <Text style={s.fieldL}>API key</Text>
-          <TextInput style={s.keyIn} value={st.groqKey} onChangeText={(x) => setSettings({ groqKey: x.trim() })} placeholder="gsk_…" placeholderTextColor={c.soft} secureTextEntry autoCapitalize="none" autoCorrect={false} selectionColor={c.lime} accessibilityLabel="Groq API key" />
+          <TextInput style={s.keyIn} value={st.groqKey} onChangeText={(x) => setSettings({ groqKey: x.trim() })} placeholder="gsk_…" placeholderTextColor={c.soft} secureTextEntry autoCapitalize="none" autoCorrect={false} selectionColor={c.glow} accessibilityLabel="Groq API key" />
           <Text style={s.fieldL}>Model</Text>
-          <TextInput style={s.keyIn} value={st.groqModel} onChangeText={(x) => setSettings({ groqModel: x.trim() })} placeholder="qwen/qwen3.8-27b" placeholderTextColor={c.soft} autoCapitalize="none" autoCorrect={false} selectionColor={c.lime} accessibilityLabel="Groq model" />
+          <TextInput style={s.keyIn} value={st.groqModel} onChangeText={(x) => setSettings({ groqModel: x.trim() })} placeholder="qwen/qwen3.8-27b" placeholderTextColor={c.soft} autoCapitalize="none" autoCorrect={false} selectionColor={c.glow} accessibilityLabel="Groq model" />
           <Pressable onPress={() => Linking.openURL('https://console.groq.com/keys')} accessibilityRole="link"><Text style={s.link}>Get a Groq API key</Text></Pressable>
         </View>
       </View>
@@ -229,11 +229,11 @@ export function Profile() {
                         <View style={s.chipsRow}>
                           {([['auto', 'Auto'], ['gkg', 'g / kg'], ['pct', '% kcal'], ['g', 'grams']] as const).map(([tt, lab]) => (
                             <Pressable key={tt} onPress={() => setRl((r) => r.map((x, j) => (j === i ? { t: tt, v: x.t === tt ? x.v : tt === 'gkg' ? String(Math.round((g / p.weightKg) * 10) / 10) : tt === 'pct' ? String(Math.round((g * [4, 4, 9][i] * 100) / t.kcal)) : tt === 'g' ? String(g) : '' } : x)))} style={[s.opt, rl[i]?.t === tt && { backgroundColor: c.btn }]} accessibilityRole="button" accessibilityLabel={`${l} ${lab}`}>
-                              <Text style={[s.optT, rl[i]?.t === tt && { color: c.lime }]}>{lab}</Text>
+                              <Text style={[s.optT, rl[i]?.t === tt && { color: c.glowText }]}>{lab}</Text>
                             </Pressable>
                           ))}
                           {rl[i] && rl[i].t !== 'auto' && (
-                            <TextInput style={s.optIn} value={rl[i].v} onChangeText={(x) => setRl((r) => r.map((y, j) => (j === i ? { ...y, v: x } : y)))} keyboardType="decimal-pad" maxLength={5} selectTextOnFocus selectionColor={c.lime} accessibilityLabel={`${l} value`} />
+                            <TextInput style={s.optIn} value={rl[i].v} onChangeText={(x) => setRl((r) => r.map((y, j) => (j === i ? { ...y, v: x } : y)))} keyboardType="decimal-pad" maxLength={5} selectTextOnFocus selectionColor={c.glow} accessibilityLabel={`${l} value`} />
                           )}
                         </View>
                       </View>
@@ -274,10 +274,10 @@ export function Profile() {
                     );
                   })()}
                   <Text style={[s.liT, { marginTop: 8 }]}>Or set your own</Text>
-                  <TextInput style={[s.field, s.fieldBig]} value={vals[0]} onChangeText={(x) => setVals([x])} placeholder={String(t.kcal)} placeholderTextColor={c.soft} keyboardType="decimal-pad" maxLength={5} selectTextOnFocus selectionColor={c.lime} accessibilityLabel="Daily budget (kcal)" />
+                  <TextInput style={[s.field, s.fieldBig]} value={vals[0]} onChangeText={(x) => setVals([x])} placeholder={String(t.kcal)} placeholderTextColor={c.soft} keyboardType="decimal-pad" maxLength={5} selectTextOnFocus selectionColor={c.glow} accessibilityLabel="Daily budget (kcal)" />
                 </ScrollView>
               ) : (
-                <TextInput style={[s.field, s.fieldBig]} value={vals[0]} onChangeText={(x) => setVals([x])} keyboardType="decimal-pad" maxLength={6} selectTextOnFocus selectionColor={c.lime} autoFocus accessibilityLabel={TITLES[edit]} />
+                <TextInput style={[s.field, s.fieldBig]} value={vals[0]} onChangeText={(x) => setVals([x])} keyboardType="decimal-pad" maxLength={6} selectTextOnFocus selectionColor={c.glow} autoFocus accessibilityLabel={TITLES[edit]} />
               )}
               {edit !== 'activity' && (
                 <>
@@ -322,7 +322,7 @@ export function Profile() {
           <Text style={s.liT}>Import data</Text>
           <Icon d={P.next} size={16} color={c.soft} />
         </Pressable>
-        {dataMsg ? <Text style={[s.liS, { paddingBottom: 12, color: /^Could|^This/.test(dataMsg) ? c.red : c.limeText }]}>{dataMsg}</Text> : null}
+        {dataMsg ? <Text style={[s.liS, { paddingBottom: 12, color: /^Could|^This/.test(dataMsg) ? c.red : c.glowText }]}>{dataMsg}</Text> : null}
       </View>
       <Pressable onPress={confirmReset} style={s.reset} accessibilityRole="button">
         <Text style={s.resetText}>Delete profile</Text>
@@ -333,64 +333,64 @@ export function Profile() {
 
 const mkStyles = () => StyleSheet.create({
   segRow: { flexDirection: 'row', gap: 8 },
-  segB: { flex: 1, height: 40, borderRadius: 20, backgroundColor: c.page, alignItems: 'center', justifyContent: 'center' },
+  segB: { flex: 1, height: 40, borderRadius: 6, backgroundColor: c.page, alignItems: 'center', justifyContent: 'center' },
   segT: { fontFamily: f.bold, fontSize: 13.5, color: c.ink },
   empty: { fontFamily: f.regular, fontSize: 15, color: c.muted, marginHorizontal: 10, lineHeight: 22 },
   group: { marginHorizontal: 10, marginBottom: 20 },
   groupHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   groupName: { fontFamily: f.extra, fontSize: 17, color: c.ink },
-  groupKcal: { fontFamily: f.bold, fontSize: 14, color: c.limeText },
-  panel: { marginHorizontal: 10, borderRadius: 28, padding: 18, height: 230 },
+  groupKcal: { fontFamily: f.bold, fontSize: 14, color: c.glowText },
+  panel: { marginHorizontal: 10, borderRadius: 6, padding: 18, height: 230 },
   chart: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', flex: 1 },
   col: { alignItems: 'center', width: 34 },
   colTrack: { height: 140, justifyContent: 'flex-end', width: 22 },
   colL: { fontFamily: f.semi, fontSize: 12, color: c.soft, marginTop: 10 },
   limit: { position: 'absolute', left: 18, right: 18, height: 1, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: c.soft },
   statRow: { flexDirection: 'row', gap: 12, marginHorizontal: 10, marginTop: 12 },
-  stat: { flex: 1, borderRadius: 24, padding: 16 },
+  stat: { flex: 1, borderRadius: 6, padding: 16 },
   statL: { fontFamily: f.semi, fontSize: 13, color: c.muted },
   statV: { fontFamily: f.extra, fontSize: 24, color: c.ink, letterSpacing: -0.6, marginTop: 4 },
   pHead: { alignItems: 'center', gap: 12, marginBottom: 22 },
-  avatarRing: { width: 84, height: 84, borderRadius: 42, borderWidth: 3, borderColor: c.lime, padding: 4 },
+  avatarRing: { width: 84, height: 84, borderRadius: 42, borderWidth: 3, borderColor: c.glow, padding: 4 },
   avatar: { flex: 1, borderRadius: 40, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center' },
-  avatarLetter: { fontFamily: f.extra, fontSize: 32, color: c.lime },
+  avatarLetter: { fontFamily: f.extra, fontSize: 32, color: c.glow },
   pName: { fontFamily: f.extra, fontSize: 24, color: c.ink, letterSpacing: -0.5 },
-  list: { marginHorizontal: 10, borderRadius: 26, paddingHorizontal: 18 },
+  list: { marginHorizontal: 10, borderRadius: 6, paddingHorizontal: 18 },
   li: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 15 },
   liK: { fontFamily: f.medium, fontSize: 14, color: c.muted },
   liV: { fontFamily: f.bold, fontSize: 14, color: c.ink },
   sect: { fontFamily: f.extra, fontSize: 17, color: c.ink, marginHorizontal: 10, marginTop: 24, marginBottom: 10 },
   liT: { fontFamily: f.bold, fontSize: 15, color: c.ink },
   liS: { fontFamily: f.regular, fontSize: 12.5, color: c.muted, marginTop: 3, lineHeight: 18 },
-  logRow: { borderRadius: 22, paddingHorizontal: 18, paddingVertical: 16, flexDirection: 'row', alignItems: 'center' },
+  logRow: { borderRadius: 6, paddingHorizontal: 18, paddingVertical: 16, flexDirection: 'row', alignItems: 'center' },
   logDay: { fontFamily: f.bold, fontSize: 16, color: c.ink },
   logSub: { fontFamily: f.medium, fontSize: 12.5, color: c.muted, marginTop: 2 },
   logKcal: { fontFamily: f.extra, fontSize: 17, color: c.ink },
   logUnit: { fontFamily: f.semi, fontSize: 12.5, color: c.muted },
   credit: { fontFamily: f.regular, fontSize: 11.5, color: c.soft, marginHorizontal: 10, marginTop: 10, textAlign: 'center' },
   mWrap: { flex: 1, backgroundColor: 'rgba(21,32,15,0.4)', justifyContent: 'center', paddingHorizontal: 20 },
-  mCard: { backgroundColor: c.card, borderRadius: 28, padding: 20, gap: 4 },
+  mCard: { backgroundColor: c.card, borderRadius: 6, padding: 20, gap: 4, borderWidth: 1, borderColor: c.panelLine},
   mTitle: { fontFamily: f.extra, fontSize: 18, color: c.ink, marginBottom: 8 },
   mRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 12 },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: c.line },
-  fieldBox: { flex: 1, backgroundColor: c.page, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8 },
+  fieldBox: { flex: 1, backgroundColor: c.page, borderRadius: 4, paddingHorizontal: 12, paddingVertical: 8 },
   fieldL: { fontFamily: f.semi, fontSize: 11.5, color: c.muted },
   field: { fontFamily: f.extra, fontSize: 20, color: c.ink, paddingVertical: 2 },
-  fieldBig: { backgroundColor: c.page, borderRadius: 20, paddingHorizontal: 18, paddingVertical: 12, fontSize: 30 },
-  save: { height: 54, borderRadius: 27, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-  saveT: { fontFamily: f.bold, fontSize: 16, color: c.lime },
-  link: { fontFamily: f.bold, fontSize: 14, color: c.limeText },
+  fieldBig: { backgroundColor: c.page, borderRadius: 6, paddingHorizontal: 18, paddingVertical: 12, fontSize: 30 },
+  save: { height: 54, borderRadius: 6, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center', marginTop: 8, borderWidth: 1, borderColor: c.glow},
+  saveT: { fontFamily: f.bold, fontSize: 16, color: '#fff', letterSpacing: 1.6, textTransform: 'uppercase' },
+  link: { fontFamily: f.bold, fontSize: 14, color: c.glowText },
   mRowH: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
-  opt: { backgroundColor: c.page, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8 },
+  opt: { backgroundColor: c.page, borderRadius: 4, paddingHorizontal: 12, paddingVertical: 8 },
   optT: { fontFamily: f.bold, fontSize: 12.5, color: c.ink },
-  optIn: { minWidth: 64, backgroundColor: c.page, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6, fontFamily: f.extra, fontSize: 15, color: c.ink },
-  method: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 2, borderColor: c.line, borderRadius: 18, padding: 12 },
+  optIn: { minWidth: 64, backgroundColor: c.page, borderRadius: 4, paddingHorizontal: 10, paddingVertical: 6, fontFamily: f.extra, fontSize: 15, color: c.ink },
+  method: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 2, borderColor: c.line, borderRadius: 4, padding: 12 },
   methodV: { fontFamily: f.extra, fontSize: 17, color: c.ink },
-  detail: { backgroundColor: c.page, borderRadius: 18, padding: 14, gap: 6, marginTop: 4 },
+  detail: { backgroundColor: c.page, borderRadius: 4, padding: 14, gap: 6, marginTop: 4 },
   detailH: { fontFamily: f.extra, fontSize: 14, color: c.ink },
   detailL: { fontFamily: f.regular, fontSize: 12.5, color: c.ink, lineHeight: 18 },
-  keyIn: { backgroundColor: c.page, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 11, fontFamily: f.medium, fontSize: 14.5, color: c.ink },
+  keyIn: { backgroundColor: c.page, borderRadius: 4, paddingHorizontal: 14, paddingVertical: 11, fontFamily: f.medium, fontSize: 14.5, color: c.ink },
   reset: { alignSelf: 'center', marginTop: 24, paddingVertical: 12, paddingHorizontal: 18 },
   resetText: { fontFamily: f.bold, fontSize: 14, color: c.red },
 });

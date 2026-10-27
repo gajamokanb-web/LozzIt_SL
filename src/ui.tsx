@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Text } from './i18n';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { c, f, onTheme } from './theme';
+import { alpha, c, f, glow, onTheme, r, textGlow } from './theme';
 import type { MealKey } from './domain';
 
 export const P = {
@@ -51,26 +51,68 @@ export function Icon({ d, size = 24, color = c.ink, fill = 'none', sw = 2 }: { d
   );
 }
 
-/** Round colour badge + glyph used for meals, water and weight. */
+/** Rune medallion: a dark disc with a glowing ring and glyph in the given colour (meals, water, weight). */
 export function Disc({ d, bg, size = 44, fill = 'none', sw = 2 }: { d: string[]; bg: string; size?: number; fill?: string; sw?: number }) {
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-      <Icon d={d} size={size * 0.52} color="#fff" fill={fill} sw={sw} />
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: alpha(bg, 0.14), borderWidth: 1.5, borderColor: bg, alignItems: 'center', justifyContent: 'center', ...glow(bg, 9, 0.55) }}>
+      <Icon d={d} size={size * 0.5} color={bg} fill={fill === 'none' ? 'none' : bg} sw={sw} />
     </View>
   );
 }
 export const MEAL_STYLE: Record<MealKey, { d: string[]; bg: string }> = {
-  breakfast: { d: P.coffee, bg: '#FF9F43' },
-  snack_am: { d: P.apple, bg: '#7DC242' },
-  lunch: { d: P.meals, bg: '#22B5A3' },
-  snack_pm: { d: P.cookie, bg: '#F2688A' },
-  dinner: { d: P.moonStar, bg: '#5B5BD6' },
-  snack_eve: { d: P.popcorn, bg: '#9B6BE8' },
+  breakfast: { d: P.coffee, bg: '#F5B83D' },
+  snack_am: { d: P.apple, bg: '#3DDC97' },
+  lunch: { d: P.meals, bg: '#35D4FF' },
+  snack_pm: { d: P.cookie, bg: '#FF5C8A' },
+  dinner: { d: P.moonStar, bg: '#7C8CFF' },
+  snack_eve: { d: P.popcorn, bg: '#B26BFF' },
 };
 export const MealIcon = ({ k, size = 44 }: { k: MealKey; size?: number }) => <Disc d={MEAL_STYLE[k].d} bg={MEAL_STYLE[k].bg} size={size} />;
 
 export const card: { backgroundColor: string; borderWidth: number; borderColor: string } = { backgroundColor: c.card, borderWidth: 1, borderColor: c.line };
 onTheme(() => { card.backgroundColor = c.card; card.borderColor = c.line; });
+
+/** Four bright L-shaped brackets on the corners of a "System window". The parent must be position: relative (the default). */
+export function Corners({ color = c.glow, size = 11, thick = 2 }: { color?: string; size?: number; thick?: number }) {
+  const base = { position: 'absolute' as const, width: size, height: size, borderColor: color };
+  return (
+    <>
+      <View pointerEvents="none" style={[base, { top: -1, left: -1, borderTopWidth: thick, borderLeftWidth: thick }]} />
+      <View pointerEvents="none" style={[base, { top: -1, right: -1, borderTopWidth: thick, borderRightWidth: thick }]} />
+      <View pointerEvents="none" style={[base, { bottom: -1, left: -1, borderBottomWidth: thick, borderLeftWidth: thick }]} />
+      <View pointerEvents="none" style={[base, { bottom: -1, right: -1, borderBottomWidth: thick, borderRightWidth: thick }]} />
+    </>
+  );
+}
+
+/** Void background: a cold glow from the top, a violet haze from the bottom and a few drifting motes of mana. */
+export function Backdrop() {
+  const { width, height } = useWindowDimensions();
+  const motes = React.useMemo(() => {
+    let seed = 7;
+    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    return Array.from({ length: 34 }, () => ({ x: rnd() * width, y: rnd() * height, r: 0.6 + rnd() * 1.4, o: 0.12 + rnd() * 0.35, hue: rnd() > 0.72 ? 1 : 0 }));
+  }, [width, height]);
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Svg width={width} height={height}>
+        <Defs>
+          <RadialGradient id="topGlow" gradientUnits="userSpaceOnUse" cx={width / 2} cy={0} rx={width * 1.0} ry={height * 0.5} fx={width / 2} fy={0}>
+            <Stop offset="0" stopColor={c.glow} stopOpacity={0.2} />
+            <Stop offset="1" stopColor={c.glow} stopOpacity={0} />
+          </RadialGradient>
+          <RadialGradient id="lowHaze" gradientUnits="userSpaceOnUse" cx={width} cy={height} rx={width * 1.1} ry={height * 0.42} fx={width} fy={height}>
+            <Stop offset="0" stopColor={c.violet} stopOpacity={0.16} />
+            <Stop offset="1" stopColor={c.violet} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Rect x={0} y={0} width={width} height={height} fill="url(#topGlow)" />
+        <Rect x={0} y={0} width={width} height={height} fill="url(#lowHaze)" />
+        {motes.map((m, i) => <Circle key={i} cx={m.x} cy={m.y} r={m.r} fill={m.hue ? c.violet : c.glow} opacity={m.o} />)}
+      </Svg>
+    </View>
+  );
+}
 
 export type Tab = 'home' | 'stats' | 'recipes' | 'profile';
 
@@ -110,45 +152,59 @@ export function Screen({ children }: { children: React.ReactNode }) {
 }
 
 export function Title({ children }: { children: string }) {
-  return <Text style={s.title}>{children}</Text>;
+  return (
+    <View style={s.titleWrap}>
+      <Text style={s.title}>{children}</Text>
+      <View style={s.rule}>
+        <View style={s.ruleBright} />
+      </View>
+    </View>
+  );
 }
 
-const LABELS: Record<Tab, string> = { home: 'Dashboard', stats: 'Stats', recipes: 'Recipes', profile: 'Profile' };
+const LABELS: Record<Tab, string> = { home: 'Status', stats: 'Stats', recipes: 'Grimoire', profile: 'Hunter' };
 
 export function BottomNav({ tab, onTab, onAdd }: { tab: Tab; onTab: (t: Tab) => void; onAdd: () => void }) {
   const { bottom } = useSafeAreaInsets();
-  const Item = ({ t, d, fill }: { t: Tab; d: string[]; fill?: boolean }) => {
+  const Item = ({ t, d }: { t: Tab; d: string[] }) => {
     const on = tab === t;
     return (
       <Pressable style={s.tab} onPress={() => onTab(t)} hitSlop={4} accessibilityRole="button" accessibilityLabel={LABELS[t]}>
-        <Icon d={d} size={22} color={on ? c.ink : c.soft} fill={fill && on ? c.ink : 'none'} />
-        <Text style={[s.tabLabel, on && { color: c.ink, fontFamily: f.bold }]}>{LABELS[t]}</Text>
+        {on && <View style={s.tabBar} />}
+        <Icon d={d} size={22} color={on ? c.glow : c.soft} />
+        <Text style={[s.tabLabel, on && { color: c.glowText, fontFamily: f.bold }]}>{LABELS[t]}</Text>
       </Pressable>
     );
   };
   return (
     <View style={[s.navWrap, { bottom: Math.max(bottom, 12) + 10 }]} pointerEvents="box-none">
       <View style={s.nav}>
-        <Item t="home" d={P.home} fill />
+        <Item t="home" d={P.home} />
         <Item t="stats" d={P.stats} />
         <View style={{ width: 64 }} />
         <Item t="recipes" d={P.book} />
         <Item t="profile" d={P.user} />
+        <Corners />
       </View>
       <Pressable style={s.scan} onPress={onAdd} accessibilityRole="button" accessibilityLabel="Add">
-        <Icon d={P.plus} size={30} sw={2.6} />
+        <View style={s.scanIcon}><Icon d={P.plus} size={28} sw={2.8} color={c.onGlow} /></View>
       </Pressable>
     </View>
   );
 }
 
 const mkStyles = () => StyleSheet.create({
-  title: { fontFamily: f.extra, fontSize: 26, color: c.ink, letterSpacing: -0.6, marginHorizontal: 10, marginBottom: 14 },
+  titleWrap: { marginHorizontal: 10, marginBottom: 16 },
+  title: { fontFamily: f.extra, fontSize: 24, color: c.ink, letterSpacing: 3, textTransform: 'uppercase', ...textGlow(c.glow, 14) },
+  rule: { height: 1, backgroundColor: c.line, marginTop: 8 },
+  ruleBright: { width: 54, height: 2, marginTop: -0.5, backgroundColor: c.glow, ...glow(c.glow, 8, 0.9) },
   navWrap: { position: 'absolute', left: 16, right: 16 },
-  nav: { ...card, height: 72, borderRadius: 36, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 4, elevation: 8, shadowColor: c.ink, shadowOpacity: 0.1, shadowRadius: 15, shadowOffset: { width: 0, height: 8 } },
+  nav: { ...card, height: 70, borderRadius: r.md, borderColor: c.panelLine, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 4, elevation: 10, ...glow(c.glow, 16, 0.35) },
   tab: { width: 68, height: 56, alignItems: 'center', justifyContent: 'center', gap: 4 },
-  tabLabel: { fontFamily: f.semi, fontSize: 10.5, color: c.soft },
-  scan: { position: 'absolute', alignSelf: 'center', top: -24, width: 66, height: 66, borderRadius: 33, backgroundColor: c.lime, borderWidth: 5, borderColor: c.card, alignItems: 'center', justifyContent: 'center', elevation: 10 },
+  tabBar: { position: 'absolute', top: -7, width: 30, height: 2, backgroundColor: c.glow, ...glow(c.glow, 8, 1) },
+  tabLabel: { fontFamily: f.semi, fontSize: 10.5, color: c.soft, letterSpacing: 0.8, textTransform: 'uppercase' },
+  scan: { position: 'absolute', alignSelf: 'center', top: -30, width: 60, height: 60, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '45deg' }], borderRadius: r.lg, backgroundColor: c.glow, borderWidth: 4, borderColor: c.page, elevation: 12, ...glow(c.glow, 18, 0.8) },
+  scanIcon: { transform: [{ rotate: '-45deg' }] },
 });
 export let s = mkStyles();
 onTheme(() => { s = mkStyles(); });

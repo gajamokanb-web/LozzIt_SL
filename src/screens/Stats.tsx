@@ -10,14 +10,14 @@ import { useStore } from '../store';
 import { useSteps } from '../steps';
 import { card, Icon, KbView, P, Screen, Title } from '../ui';
 
-const FAT = '#F6B26B', CARB = '#5BAEDC', PROT = '#6C63E0';
+const FAT = '#F5B83D', CARB = '#35D4FF', PROT = '#A06BFF';
 const BAR_H = 150;
 
 const polar = (cx: number, cy: number, r: number, deg: number) => {
   const a = ((deg - 90) * Math.PI) / 180;
   return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
 };
-const OUT = 'rgba(128,128,128,0.4)';
+const OUT = 'rgba(110,145,230,0.38)';
 const arc = (cx: number, cy: number, r: number, a0: number, a1: number) => {
   const [x0, y0] = polar(cx, cy, r, a0);
   const [x1, y1] = polar(cx, cy, r, a1);
@@ -57,7 +57,7 @@ function DayBars({ days, values, goal, done, over }: { days: Day[]; values: numb
           <View key={d.key} style={s.barCol}>
             <View style={s.track}>
               {values[i] > 0 && (
-                <View style={[s.fill, { height: Math.max(h, 8), backgroundColor: over?.(i) ? c.orange : c.lime }]}>
+                <View style={[s.fill, { height: Math.max(h, 8), backgroundColor: over?.(i) ? c.orange : c.glow }]}>
                   {done[i] && <View style={{ marginBottom: 4 }}><Icon d={['M5 12.5l4.5 4.5L19 7.5']} size={16} sw={3} color={c.ink} /></View>}
                 </View>
               )}
@@ -104,9 +104,9 @@ function WeightChart({ pts, goal }: { pts: [string, number][]; goal: number }) {
             <SText x={0} y={Y(v) + 4} fontSize={11} fill={c.muted}>{v.toFixed(1)}</SText>
           </React.Fragment>
         ))}
-        {goal >= lo && goal <= hi && <Line x1={padL} x2={w - padR} y1={Y(goal)} y2={Y(goal)} stroke={c.limeText} strokeWidth={1.5} strokeDasharray="5 4" />}
+        {goal >= lo && goal <= hi && <Line x1={padL} x2={w - padR} y1={Y(goal)} y2={Y(goal)} stroke={c.glowText} strokeWidth={1.5} strokeDasharray="5 4" />}
         {pts.length > 1 && <Path d={path} stroke={c.ink} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />}
-        {pts.map((p) => <Circle key={p[0]} cx={X(p[0])} cy={Y(p[1])} r={pts.length > 40 ? 0 : 4} fill={c.lime} stroke={c.ink} strokeWidth={2} />)}
+        {pts.map((p) => <Circle key={p[0]} cx={X(p[0])} cy={Y(p[1])} r={pts.length > 40 ? 0 : 4} fill={c.glow} stroke={c.ink} strokeWidth={2} />)}
         <SText x={padL} y={H - 4} fontSize={11} fill={c.muted}>{shortDate(pts[0][0])}</SText>
         {pts.length > 1 && <SText x={w - padR} y={H - 4} fontSize={11} fill={c.muted} textAnchor="end">{shortDate(pts[pts.length - 1][0])}</SText>}
       </Svg>
@@ -160,10 +160,10 @@ function WeightLogs({ visible, onClose }: { visible: boolean; onClose: () => voi
             <View style={s.lBox}>
               <Text style={s.cardT}>Edit weigh-in</Text>
               <Pressable onPress={() => setCal(true)} style={s.lDateBtn} accessibilityRole="button" accessibilityLabel="Choose the date">
-                <Icon d={P.calendar} size={16} color={c.limeText} sw={2.2} /><Text style={s.lDateT}>{fmtDay(ed.to)}</Text>
+                <Icon d={P.calendar} size={16} color={c.glowText} sw={2.2} /><Text style={s.lDateT}>{fmtDay(ed.to)}</Text>
               </Pressable>
               <View style={s.lKgBox}>
-                <TextInput style={s.lKgIn} value={ed.kg} onChangeText={(v) => setEd({ ...ed, kg: v })} keyboardType="decimal-pad" maxLength={6} selectTextOnFocus selectionColor={c.lime} accessibilityLabel="Weight in kilograms" />
+                <TextInput style={s.lKgIn} value={ed.kg} onChangeText={(v) => setEd({ ...ed, kg: v })} keyboardType="decimal-pad" maxLength={6} selectTextOnFocus selectionColor={c.glow} accessibilityLabel="Weight in kilograms" />
                 <Text style={s.lUnit}>kg</Text>
               </View>
               <Pressable onPress={save} disabled={!ok} style={[s.lCta, !ok && { opacity: 0.35 }]} accessibilityRole="button"><Text style={s.lCtaT}>Save</Text></Pressable>
@@ -232,7 +232,7 @@ export function Stats({ onLogWeight }: { onLogWeight: () => void }) {
       <View style={[s.card, card]}>
         <CardHead title="Calories" />
         <View style={s.row}>
-          <Gauge pct={kT / t.kcal} color={left < 0 ? c.orange : c.lime} big={fmt(Math.abs(left))} small={left >= 0 ? 'under' : 'over'} foot={`${fmt(kT)} cals`} />
+          <Gauge pct={kT / t.kcal} color={left < 0 ? c.orange : c.glow} big={fmt(Math.abs(left))} small={left >= 0 ? 'under' : 'over'} foot={`${fmt(kT)} cals`} />
           <DayBars days={days} values={per.map((x) => x.kcal)} goal={t.kcal} done={per.map((x, i) => elapsed[i] && x.kcal <= t.kcal)} over={(i) => per[i].kcal > t.kcal} />
         </View>
         <Text style={s.note}>
@@ -321,19 +321,19 @@ export function Stats({ onLogWeight }: { onLogWeight: () => void }) {
           right={(
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Pressable onPress={() => setLogs(true)} style={s.logsBtn} accessibilityRole="button" accessibilityLabel="Weight logs"><Icon d={P.list} size={15} sw={2.4} color={c.ink} /><Text style={s.logsT}>Logs</Text></Pressable>
-              <Pressable onPress={onLogWeight} style={s.plus} accessibilityRole="button" accessibilityLabel="Log weight"><Icon d={P.plus} size={18} sw={2.8} color={c.lime} /></Pressable>
+              <Pressable onPress={onLogWeight} style={s.plus} accessibilityRole="button" accessibilityLabel="Log weight"><Icon d={P.plus} size={18} sw={2.8} color={c.glow} /></Pressable>
             </View>
           )}
         />
         <View style={s.wRow}>
           <Text style={s.wBig}>{last != null ? last : '—'}<Text style={s.wUnit}> kg</Text></Text>
-          {change != null && <Text style={[s.wDelta, { color: change <= 0 ? c.limeText : c.orange }]}>{change > 0 ? '+' : ''}{change.toFixed(1)} kg · {RANGES[range][1].toLowerCase()}</Text>}
+          {change != null && <Text style={[s.wDelta, { color: change <= 0 ? c.glowText : c.orange }]}>{change > 0 ? '+' : ''}{change.toFixed(1)} kg · {RANGES[range][1].toLowerCase()}</Text>}
         </View>
         <WeightChart pts={pts} goal={state.profile!.goalKg} />
         <View style={s.ranges}>
           {RANGES.map(([k], i) => (
             <Pressable key={k} onPress={() => setRange(i)} style={[s.range, range === i && { backgroundColor: c.btn }]} accessibilityRole="button" accessibilityLabel={RANGES[i][1]}>
-              <Text style={[s.rangeT, range === i && { color: c.lime }]}>{k}</Text>
+              <Text style={[s.rangeT, range === i && { color: c.glowText }]}>{k}</Text>
             </Pressable>
           ))}
         </View>
@@ -345,22 +345,22 @@ export function Stats({ onLogWeight }: { onLogWeight: () => void }) {
 }
 
 const mkStyles = () => StyleSheet.create({
-  logsBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, borderRadius: 17, paddingHorizontal: 12, backgroundColor: c.page, borderWidth: 1, borderColor: c.line },
+  logsBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, borderRadius: 4, paddingHorizontal: 12, backgroundColor: c.page, borderWidth: 1, borderColor: c.line },
   logsT: { fontFamily: f.bold, fontSize: 13, color: c.ink },
-  lWrap: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', paddingHorizontal: 20 },
-  lBox: { backgroundColor: c.card, borderRadius: 28, padding: 18, gap: 10, borderWidth: 1, borderColor: c.line },
+  lWrap: { flex: 1, backgroundColor: 'rgba(2,4,14,0.8)', justifyContent: 'center', paddingHorizontal: 20 },
+  lBox: { backgroundColor: c.card, borderRadius: 6, padding: 18, gap: 10, borderWidth: 1, borderColor: c.panelLine },
   lHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   lRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13 },
   lDate: { flex: 1, fontFamily: f.medium, fontSize: 15, color: c.ink },
   lKg: { fontFamily: f.medium, fontSize: 15, color: c.ink },
-  lDateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, alignSelf: 'center', backgroundColor: c.tint, borderRadius: 20, paddingHorizontal: 16, height: 38 },
-  lDateT: { fontFamily: f.bold, fontSize: 14, color: c.limeText },
-  lKgBox: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', backgroundColor: c.page, borderRadius: 22, paddingVertical: 8, gap: 6 },
+  lDateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, alignSelf: 'center', backgroundColor: c.tint, borderRadius: 6, paddingHorizontal: 16, height: 38 },
+  lDateT: { fontFamily: f.bold, fontSize: 14, color: c.glowText },
+  lKgBox: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', backgroundColor: c.page, borderRadius: 6, paddingVertical: 8, gap: 6 },
   lKgIn: { fontFamily: f.extra, fontSize: 34, color: c.ink, minWidth: 100, textAlign: 'right', paddingVertical: 0 },
   lUnit: { fontFamily: f.bold, fontSize: 16, color: c.muted },
-  lCta: { height: 50, borderRadius: 25, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center' },
-  lCtaT: { fontFamily: f.bold, fontSize: 16, color: c.lime },
-  card: { marginHorizontal: 10, marginBottom: 8, borderRadius: 26, padding: 16 },
+  lCta: { height: 50, borderRadius: 6, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.glow},
+  lCtaT: { fontFamily: f.bold, fontSize: 16, color: '#fff', letterSpacing: 1.6, textTransform: 'uppercase' },
+  card: { marginHorizontal: 10, marginBottom: 8, borderRadius: 6, padding: 16 },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   cardT: { fontFamily: f.extra, fontSize: 18, color: c.ink, letterSpacing: -0.3 },
   row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
@@ -370,8 +370,8 @@ const mkStyles = () => StyleSheet.create({
   gaugeFoot: { fontFamily: f.bold, fontSize: 14, color: c.ink, marginTop: 6 },
   bars: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', marginLeft: 8 },
   barCol: { alignItems: 'center', width: 26 },
-  track: { width: 22, height: BAR_H, borderRadius: 11, backgroundColor: c.page, justifyContent: 'flex-end', overflow: 'hidden', borderWidth: 1.5, borderColor: OUT },
-  fill: { width: '100%', borderRadius: 11, alignItems: 'center', justifyContent: 'flex-end' },
+  track: { width: 22, height: BAR_H, borderRadius: 3, backgroundColor: c.page, justifyContent: 'flex-end', overflow: 'hidden', borderWidth: 1.5, borderColor: OUT },
+  fill: { width: '100%', borderRadius: 3, alignItems: 'center', justifyContent: 'flex-end' },
   barL: { fontFamily: f.semi, fontSize: 12.5, color: c.soft, marginTop: 8 },
   note: { fontFamily: f.regular, fontSize: 14, color: c.ink, textAlign: 'center', marginTop: 18 },
   noteB: { fontFamily: f.extra },
@@ -381,16 +381,16 @@ const mkStyles = () => StyleSheet.create({
   legV: { fontFamily: f.extra, fontSize: 13, color: c.ink },
   avgRow: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', marginTop: 10 },
   avgL: { fontFamily: f.medium, fontSize: 13, color: c.muted, marginRight: 4 },
-  chip: { borderRadius: 18, paddingHorizontal: 16, paddingVertical: 9 },
+  chip: { borderRadius: 4, paddingHorizontal: 16, paddingVertical: 9 },
   chipT: { fontFamily: f.extra, fontSize: 14 },
   empty: { fontFamily: f.regular, fontSize: 14, color: c.muted, lineHeight: 21 },
-  plus: { width: 34, height: 34, borderRadius: 17, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center' },
+  plus: { width: 34, height: 34, borderRadius: 4, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center' },
   wRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap' },
   wBig: { fontFamily: f.extra, fontSize: 30, color: c.ink, letterSpacing: -0.8 },
   wUnit: { fontFamily: f.semi, fontSize: 15, color: c.muted },
   wDelta: { fontFamily: f.bold, fontSize: 13 },
   ranges: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
-  range: { backgroundColor: c.page, borderRadius: 16, paddingHorizontal: 13, paddingVertical: 8 },
+  range: { backgroundColor: c.page, borderRadius: 4, paddingHorizontal: 13, paddingVertical: 8 },
   rangeT: { fontFamily: f.bold, fontSize: 12.5, color: c.ink },
   rangeName: { fontFamily: f.medium, fontSize: 12, color: c.muted, textAlign: 'center', marginTop: 10 },
 });

@@ -45,10 +45,10 @@ export function Calendar({ visible, selected, marks, onPick, onClose, title }: {
                 const on = k === selected;
                 return (
                   <Pressable key={i} style={s.cell} onPress={() => { onPick(k); onClose(); }} accessibilityLabel={`Select ${k}`}>
-                    <View style={[s.day, on && { backgroundColor: c.btn }, !on && k === today && { borderWidth: 2, borderColor: c.lime }]}>
+                    <View style={[s.day, on && { backgroundColor: c.btn }, !on && k === today && { borderWidth: 2, borderColor: c.glow }]}>
                       <Text style={[s.dayT, on && { color: '#fff' }]}>{d}</Text>
                     </View>
-                    <View style={[s.dot, { opacity: marks.has(k) ? 1 : 0 }, on && { backgroundColor: c.lime }]} />
+                    <View style={[s.dot, { opacity: marks.has(k) ? 1 : 0 }, on && { backgroundColor: c.glow }]} />
                   </Pressable>
                 );
               })}
@@ -66,18 +66,18 @@ export function Calendar({ visible, selected, marks, onPick, onClose, title }: {
 const mkStyles = () => StyleSheet.create({
   title: { fontFamily: f.extra, fontSize: 17, color: c.ink, textAlign: 'center', marginBottom: 10 },
   wrap: { flex: 1, backgroundColor: 'rgba(21,32,15,0.4)', justifyContent: 'center', paddingHorizontal: 20 },
-  card: { backgroundColor: c.card, borderRadius: 30, padding: 18 },
+  card: { backgroundColor: c.card, borderRadius: 6, padding: 18, borderWidth: 1, borderColor: c.panelLine},
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  arrow: { width: 38, height: 38, borderRadius: 19, backgroundColor: c.page, alignItems: 'center', justifyContent: 'center' },
+  arrow: { width: 38, height: 38, borderRadius: 4, backgroundColor: c.page, alignItems: 'center', justifyContent: 'center' },
   month: { fontFamily: f.extra, fontSize: 18, color: c.ink, letterSpacing: -0.3 },
   row: { flexDirection: 'row' },
   wd: { flex: 1, textAlign: 'center', fontFamily: f.semi, fontSize: 12, color: c.soft, paddingVertical: 6 },
   cell: { flex: 1, height: 46, alignItems: 'center', justifyContent: 'center' },
-  day: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  day: { width: 36, height: 36, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
   dayT: { fontFamily: f.bold, fontSize: 14, color: c.ink },
-  dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: c.lime, marginTop: 1 },
-  todayBtn: { alignSelf: 'center', marginTop: 10, paddingVertical: 10, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.tint },
-  todayT: { fontFamily: f.bold, fontSize: 13, color: c.limeText },
+  dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: c.glow, marginTop: 1 },
+  todayBtn: { alignSelf: 'center', marginTop: 10, paddingVertical: 10, paddingHorizontal: 18, borderRadius: 6, backgroundColor: c.tint },
+  todayT: { fontFamily: f.bold, fontSize: 13, color: c.glowText },
 });
 let s = mkStyles();
 onTheme(() => { s = mkStyles(); });

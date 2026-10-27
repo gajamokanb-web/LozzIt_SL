@@ -28,10 +28,10 @@ jobs:
           name: app-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
       # A rolling pre-release so the APK can be downloaded straight from the phone: Releases > test-latest.
-      - run: cp android/app/build/outputs/apk/release/app-release.apk lozzit.apk
+      - run: cp android/app/build/outputs/apk/release/app-release.apk lozzit_sl.apk
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: test-latest
-          name: Lozzit APK (latest)
+          name: LozzIt SL APK (latest)
           prerelease: true
-          files: lozzit.apk
+          files: lozzit_sl.apk

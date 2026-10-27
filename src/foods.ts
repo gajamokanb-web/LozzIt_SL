@@ -50,7 +50,7 @@ export function searchCiqual(query: string, limit = 40): Food[] {
 
 /* ── Open Food Facts (online) ─────────────────────────────────────────────────────────────────── */
 const OFF = 'https://world.openfoodfacts.org';
-const HEADERS = { 'User-Agent': 'Lozzit/1.0 (personal calorie tracker, Android)', Accept: 'application/json' };
+const HEADERS = { 'User-Agent': 'LozzitSL/1.0 (personal calorie tracker, Android)', Accept: 'application/json' };
 const FIELDS = 'code,product_name,product_name_fr,brands,nutriments,serving_quantity,quantity';
 
 async function getJson(url: string): Promise<any> {

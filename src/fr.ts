@@ -2,6 +2,8 @@
 export const FR: Record<string, string> = {
   // navigation
   Dashboard: 'Accueil', Stats: 'Stats', Logs: 'Journal', Profile: 'Profil', Add: 'Ajouter',
+  Status: 'Statut', Grimoire: 'Grimoire', Hunter: 'Chasseur', Monarch: 'Monarque', Shadow: 'Ombre',
+  'The System has chosen you': 'Le Système t’a choisi', Awaken: 'S’éveiller',
   // meals
   Breakfast: 'Petit-déjeuner', 'Morning Snacks': 'Collation du matin', Lunch: 'Déjeuner', 'Afternoon Snacks': 'Collation de l’après-midi', Dinner: 'Dîner', 'Evening Snacks': 'Collation du soir',
   // nutrients

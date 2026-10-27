@@ -3,19 +3,19 @@ import React, { useState } from 'react';
 import { useColorScheme, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Cinzel_700Bold, Cinzel_900Black, useFonts as useCinzel } from '@expo-google-fonts/cinzel';
 import {
-  PlusJakartaSans_400Regular,
-  PlusJakartaSans_500Medium,
-  PlusJakartaSans_600SemiBold,
-  PlusJakartaSans_700Bold,
-  PlusJakartaSans_800ExtraBold,
-  useFonts,
-} from '@expo-google-fonts/plus-jakarta-sans';
+  ChakraPetch_400Regular,
+  ChakraPetch_500Medium,
+  ChakraPetch_600SemiBold,
+  ChakraPetch_700Bold,
+  useFonts as useChakra,
+} from '@expo-google-fonts/chakra-petch';
 import { applyTheme, c } from './theme';
 import { setLang } from './i18n';
 import { dayKey, type MealKey } from './domain';
 import { StoreProvider, useStore } from './store';
-import { BottomNav, type Tab } from './ui';
+import { Backdrop, BottomNav, type Tab } from './ui';
 import { Onboarding } from './screens/Onboarding';
 import { Home } from './screens/Home';
 import { AddFood, type AddTarget } from './screens/AddFood';
@@ -53,11 +53,18 @@ function Root() {
   const skin = `${mode}-${state.settings.lang}`;
 
   if (!ready) return <View style={{ flex: 1, backgroundColor: c.page }} />;
-  if (!state.profile) return <Onboarding key={skin} onDone={(p) => { setTab('home'); setProfile(p); setWeight(dayKey(), p.weightKg); }} />;
+  if (!state.profile) return (
+    <View key={skin} style={{ flex: 1, backgroundColor: c.page }}>
+      <StatusBar style="light" />
+      <Backdrop />
+      <Onboarding onDone={(p) => { setTab('home'); setProfile(p); setWeight(dayKey(), p.weightKg); }} />
+    </View>
+  );
 
   return (
     <View key={skin} style={{ flex: 1, backgroundColor: c.page }}>
-      <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style="light" />
+      <Backdrop />
       {tab === 'home' && (
         <Home selected={selected} onSelect={setSelected} onOpenCalendar={() => setCalendar(true)} onAdd={(meal, day, scan) => setAdding({ meal, day, scan })} onEdit={(e) => setAdding({ meal: e.meal, day: e.day, editId: e.id })} onGoSettings={() => setTab('profile')} />
       )}
@@ -76,14 +83,9 @@ function Root() {
 }
 
 export default function App() {
-  const [loaded] = useFonts({
-    PlusJakartaSans_400Regular,
-    PlusJakartaSans_500Medium,
-    PlusJakartaSans_600SemiBold,
-    PlusJakartaSans_700Bold,
-    PlusJakartaSans_800ExtraBold,
-  });
-  if (!loaded) return null;
+  const [cinzel] = useCinzel({ Cinzel_700Bold, Cinzel_900Black });
+  const [chakra] = useChakra({ ChakraPetch_400Regular, ChakraPetch_500Medium, ChakraPetch_600SemiBold, ChakraPetch_700Bold });
+  if (!cinzel || !chakra) return null;
   return (
     <SafeAreaProvider>
       <StoreProvider>

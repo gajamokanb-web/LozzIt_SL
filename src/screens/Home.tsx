@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { askConfirm } from '../dialog';
 import { Text, tr } from '../i18n';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { c, f, onTheme } from '../theme';
+import { c, f, glow, onTheme, textGlow } from '../theme';
 import { addDays, entryBase, fmt, fmtDay, MEALS, parseKey, scaleEntry, sum, targets, weekDays, type Entry, type MealKey } from '../domain';
 import { useStore } from '../store';
 import { FoodIcon } from '../foodIcons';
@@ -11,9 +11,10 @@ import { FactorModal } from './Factor';
 import { BlockMenu, MealPick, MealSummary } from './BlockMenu';
 import { Calendar } from './Calendar';
 import { useSteps } from '../steps';
-import { card, Icon, P, Screen } from '../ui';
+import { card, Corners, Icon, P, Screen } from '../ui';
 
 const DROP_L = 0.25; // litres per drop (250 mL)
+const MACRO_COLOR = ['#A06BFF', '#35D4FF', '#F5B83D']; // protein / carbs / fat
 
 function DateBar({ selected, onSelect, onOpen }: { selected: string; onSelect: (k: string) => void; onOpen: () => void }) {
   return (
@@ -37,9 +38,9 @@ function WeekStrip({ days, selected, onSelect }: { days: ReturnType<typeof weekD
       {days.map((d) => {
         const on = d.key === selected;
         return (
-          <Pressable key={d.key} onPress={() => onSelect(d.key)} style={[s.day, on && { backgroundColor: c.btn }]} accessibilityLabel={`Day ${d.date}`}>
-            <Text style={[s.dayL, on && { color: c.lime }]}>{d.letter}</Text>
-            <Text style={[s.dayN, on && { color: '#fff' }]}>{d.date}</Text>
+          <Pressable key={d.key} onPress={() => onSelect(d.key)} style={[s.day, on && s.dayOn]} accessibilityLabel={`Day ${d.date}`}>
+            <Text style={[s.dayL, on && { color: c.glowText }]}>{d.letter}</Text>
+            <Text style={[s.dayN, on && { color: '#fff', ...textGlow(c.glow, 8) }]}>{d.date}</Text>
             <View style={[s.todayDot, { opacity: d.isToday && !on ? 1 : 0 }]} />
           </Pressable>
         );
@@ -153,39 +154,44 @@ export function Home({ selected, onSelect, onOpenCalendar, onAdd, onEdit, onGoSe
       <WeekStrip days={days} selected={selected} onSelect={onSelect} />
 
       <View style={s.hero}>
-        <View style={s.heroBlob} />
+        <View style={s.heroTag}><Text style={s.heroTagT}>Status</Text></View>
         <View style={{ width: 136, height: 136 }}>
           <Svg width={136} height={136} viewBox="0 0 136 136">
-            <Circle cx={68} cy={68} r={R} fill="none" stroke={c.onLime} strokeOpacity={0.13} strokeWidth={16} />
+            <Circle cx={68} cy={68} r={R} fill="none" stroke={c.line} strokeWidth={10} />
+            <Circle cx={68} cy={68} r={R + 9} fill="none" stroke={c.line} strokeWidth={1} strokeDasharray="2 5" />
             {pct > 0 && (
-              <Circle cx={68} cy={68} r={R} fill="none" stroke={c.onLime} strokeWidth={16} strokeLinecap="round" strokeDasharray={`${C * pct} ${C}`} transform="rotate(-90 68 68)" />
+              <>
+                <Circle cx={68} cy={68} r={R} fill="none" stroke={c.glow} strokeOpacity={0.28} strokeWidth={18} strokeLinecap="round" strokeDasharray={`${C * pct} ${C}`} transform="rotate(-90 68 68)" />
+                <Circle cx={68} cy={68} r={R} fill="none" stroke={left < 0 ? c.red : c.glow} strokeWidth={10} strokeLinecap="round" strokeDasharray={`${C * pct} ${C}`} transform="rotate(-90 68 68)" />
+              </>
             )}
           </Svg>
           <View style={s.ringCenter}>
-            <Text style={s.ringBig}>{fmt(Math.abs(left))}</Text>
+            <Text style={[s.ringBig, left < 0 && { color: c.red }]}>{fmt(Math.abs(left))}</Text>
             <Text style={s.ringSmall}>{left >= 0 ? 'kcal left' : 'kcal over'}</Text>
           </View>
         </View>
         <View style={{ flex: 1, gap: nSubs > 1 ? 10 : 15 }}>
-          {macros.map((m) => (
+          {macros.map((m, i) => (
             <View key={m.name}>
               <View style={s.macroTop}>
                 <Text style={s.macroName}>{m.name}</Text>
                 <Text style={s.macroVal}>{Math.round(m.v)}<Text style={s.macroGoal}>/{m.goal}g</Text></Text>
               </View>
-              <View style={s.track}><View style={[s.fill, { width: `${Math.min(m.v / m.goal, 1) * 100}%` }]} /></View>
+              <View style={s.track}><View style={[s.fill, { width: `${Math.min(m.v / m.goal, 1) * 100}%`, backgroundColor: MACRO_COLOR[i] }]} /></View>
               {m.subs.map((x) => (
                 <View key={x.name} style={{ marginTop: 6 }}>
                   <View style={s.macroTop}>
                     <Text style={s.subName}>{x.name}</Text>
                     <Text style={s.subVal}>{Math.round(x.v * 10) / 10}<Text style={s.macroGoal}>/{x.goal}g</Text></Text>
                   </View>
-                  <View style={s.trackS}><View style={[s.fillS, { width: `${Math.min(x.v / x.goal, 1) * 100}%` }]} /></View>
+                  <View style={s.trackS}><View style={[s.fillS, { width: `${Math.min(x.v / x.goal, 1) * 100}%`, backgroundColor: MACRO_COLOR[i] }]} /></View>
                 </View>
               ))}
             </View>
           ))}
         </View>
+        <Corners />
       </View>
 
       <View style={s.tiles}>
@@ -285,57 +291,59 @@ export function Home({ selected, onSelect, onOpenCalendar, onAdd, onEdit, onGoSe
 
 const mkStyles = () => StyleSheet.create({
   dateBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 46 },
-  arrow: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  arrow: { width: 42, height: 42, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
   dateBtn: { paddingVertical: 8, paddingHorizontal: 8 },
-  dateText: { fontFamily: f.extra, fontSize: 20, color: c.ink, letterSpacing: -0.4, minWidth: 130, textAlign: 'center' },
+  dateText: { fontFamily: f.extra, fontSize: 18, color: c.ink, letterSpacing: 1.4, minWidth: 150, textAlign: 'center', ...textGlow(c.glow, 12) },
 
   week: { flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 10, marginTop: 8 },
-  day: { width: 45, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center', gap: 4 },
-  dayL: { fontFamily: f.semi, fontSize: 12, color: c.soft },
+  day: { width: 45, height: 64, borderRadius: 4, borderWidth: 1, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  dayOn: { backgroundColor: c.btn, borderColor: c.glow, ...glow(c.glow, 12, 0.7) },
+  dayL: { fontFamily: f.semi, fontSize: 11, color: c.soft, letterSpacing: 1, textTransform: 'uppercase' },
   dayN: { fontFamily: f.bold, fontSize: 16, color: c.ink },
-  todayDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: c.lime },
+  todayDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: c.glow, ...glow(c.glow, 6, 1) },
 
-  hero: { marginHorizontal: 10, marginTop: 8, minHeight: 172, paddingVertical: 18, borderRadius: 30, backgroundColor: c.lime, paddingLeft: 18, paddingRight: 20, flexDirection: 'row', alignItems: 'center', gap: 20, overflow: 'hidden' },
-  heroBlob: { position: 'absolute', right: -60, top: -80, width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(255,255,255,0.16)' },
+  hero: { marginHorizontal: 10, marginTop: 14, minHeight: 172, paddingVertical: 20, borderRadius: 4, backgroundColor: c.panel, borderWidth: 1, borderColor: c.panelLine, paddingLeft: 18, paddingRight: 20, flexDirection: 'row', alignItems: 'center', gap: 20, elevation: 8, ...glow(c.glow, 22, 0.4) },
+  heroTag: { position: 'absolute', top: -10, left: 18, paddingHorizontal: 8, backgroundColor: c.page },
+  heroTagT: { fontFamily: f.bold, fontSize: 10.5, color: c.glowText, letterSpacing: 2.6, textTransform: 'uppercase', ...textGlow(c.glow, 8) },
   ringCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  ringBig: { fontFamily: f.extra, fontSize: 27, color: c.onLime, letterSpacing: -1 },
-  ringSmall: { fontFamily: f.semi, fontSize: 12, color: c.onLime, opacity: 0.72, marginTop: 3 },
-  macroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7 },
-  macroName: { fontFamily: f.semi, fontSize: 12.5, color: c.onLime, opacity: 0.78 },
-  macroVal: { fontFamily: f.extra, fontSize: 12.5, color: c.onLime },
-  macroGoal: { fontFamily: f.semi, opacity: 0.6 },
-  subName: { fontFamily: f.semi, fontSize: 11, color: c.onLime, opacity: 0.7 },
-  subVal: { fontFamily: f.bold, fontSize: 11, color: c.onLime },
-  trackS: { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.5)', overflow: 'hidden' },
-  fillS: { height: 4, borderRadius: 2, backgroundColor: c.onLime, opacity: 0.75 },
-  track: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.5)', overflow: 'hidden' },
-  fill: { height: 8, borderRadius: 4, backgroundColor: c.onLime },
+  ringBig: { fontFamily: f.extra, fontSize: 25, color: c.ink, letterSpacing: 0.5, ...textGlow(c.glow, 14) },
+  ringSmall: { fontFamily: f.semi, fontSize: 10.5, color: c.muted, marginTop: 3, letterSpacing: 1.2, textTransform: 'uppercase' },
+  macroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 },
+  macroName: { fontFamily: f.semi, fontSize: 11.5, color: c.muted, letterSpacing: 1.2, textTransform: 'uppercase' },
+  macroVal: { fontFamily: f.bold, fontSize: 13, color: c.ink },
+  macroGoal: { fontFamily: f.medium, color: c.muted },
+  subName: { fontFamily: f.semi, fontSize: 10.5, color: c.soft, letterSpacing: 1, textTransform: 'uppercase' },
+  subVal: { fontFamily: f.bold, fontSize: 11, color: c.muted },
+  trackS: { height: 3, borderRadius: 1, backgroundColor: c.line, overflow: 'hidden' },
+  fillS: { height: 3, borderRadius: 1, backgroundColor: c.glow, opacity: 0.8 },
+  track: { height: 6, borderRadius: 1, backgroundColor: c.line, overflow: 'hidden' },
+  fill: { height: 6, borderRadius: 1, backgroundColor: c.glow },
 
-  tiles: { flexDirection: 'row', gap: 8, marginHorizontal: 10, marginTop: 8 },
-  tile: { ...card, flex: 1, height: 142, borderRadius: 26, padding: 14 },
+  tiles: { flexDirection: 'row', gap: 8, marginHorizontal: 10, marginTop: 10 },
+  tile: { ...card, flex: 1, height: 142, borderRadius: 4, padding: 14 },
   tileRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  ico: { width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  tileLabel: { fontFamily: f.semi, fontSize: 13, color: c.muted },
-  big: { fontFamily: f.extra, fontSize: 23, color: c.ink, letterSpacing: -0.7, lineHeight: 32, paddingVertical: 2, marginTop: 8, marginBottom: 8 },
+  ico: { width: 32, height: 32, borderRadius: 3, alignItems: 'center', justifyContent: 'center' },
+  tileLabel: { fontFamily: f.semi, fontSize: 12, color: c.muted, letterSpacing: 1.2, textTransform: 'uppercase' },
+  big: { fontFamily: f.extra, fontSize: 22, color: c.ink, letterSpacing: 0.6, lineHeight: 32, paddingVertical: 2, marginTop: 8, marginBottom: 8 },
   bigUnit: { fontFamily: f.semi, fontSize: 13, color: c.muted, letterSpacing: 0 },
-  connect: { fontFamily: f.bold, fontSize: 13, color: c.orange, lineHeight: 32, marginTop: 8, marginBottom: 8 },
+  connect: { fontFamily: f.bold, fontSize: 13, color: c.orange, lineHeight: 32, marginTop: 8, marginBottom: 8, letterSpacing: 0.6 },
   bars: { height: 28, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
-  pm: { width: 26, height: 26, borderRadius: 13, marginLeft: 4, backgroundColor: c.blueTint, alignItems: 'center', justifyContent: 'center' },
+  pm: { width: 26, height: 26, borderRadius: 3, marginLeft: 4, backgroundColor: c.blueTint, borderWidth: 1, borderColor: c.blueSoft, alignItems: 'center', justifyContent: 'center' },
   drops: { height: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 
-  block: { ...card, marginHorizontal: 10, borderRadius: 22, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 },
+  block: { ...card, marginHorizontal: 10, borderRadius: 4, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 },
   dots: { width: 32, height: 36, alignItems: 'center', justifyContent: 'center' },
   blockHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  blockName: { fontFamily: f.bold, fontSize: 16, color: c.ink },
-  blockKcal: { fontFamily: f.bold, fontSize: 14, color: c.ink, marginRight: -4 },
+  blockName: { fontFamily: f.extra, fontSize: 14, color: c.ink, letterSpacing: 1.2 },
+  blockKcal: { fontFamily: f.bold, fontSize: 14, color: c.glowText, marginRight: -4 },
   blockSub: { fontFamily: f.medium, fontSize: 13, color: c.muted, marginTop: 2 },
   item: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, marginTop: 2 },
   itemName: { fontFamily: f.semi, fontSize: 14, color: c.ink },
   itemSub: { fontFamily: f.regular, fontSize: 12, color: c.muted, marginTop: 1 },
-  itemKcal: { fontFamily: f.regular, fontSize: 14, color: c.ink, marginLeft: 10 },
+  itemKcal: { fontFamily: f.medium, fontSize: 14, color: c.ink, marginLeft: 10 },
   btnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 8 },
-  addBtn: { backgroundColor: c.tint, borderRadius: 22, paddingVertical: 9, paddingHorizontal: 24 },
-  addText: { fontFamily: f.bold, fontSize: 15, color: c.limeText },
+  addBtn: { backgroundColor: c.tint, borderRadius: 4, borderWidth: 1, borderColor: c.panelLine, paddingVertical: 9, paddingHorizontal: 22 },
+  addText: { fontFamily: f.bold, fontSize: 12.5, color: c.glowText, letterSpacing: 1.6, textTransform: 'uppercase' },
 });
 let s = mkStyles();
 onTheme(() => { s = mkStyles(); });

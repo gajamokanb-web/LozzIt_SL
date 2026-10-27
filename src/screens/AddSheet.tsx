@@ -54,7 +54,7 @@ export function AddSheet({ visible, start = 'grid', day, suggested, onClose, onM
 
   const Tile = ({ label, children, onPress, on }: { label: string; children: React.ReactNode; onPress: () => void; on?: boolean }) => (
     <Pressable onPress={onPress} style={s.tile} accessibilityRole="button" accessibilityLabel={label}>
-      <View style={[s.disc, on && { borderColor: c.lime }]}>{children}</View>
+      <View style={[s.disc, on && { borderColor: c.glow }]}>{children}</View>
       <Text style={s.tileL} numberOfLines={2}>{label}</Text>
     </Pressable>
   );
@@ -103,11 +103,11 @@ export function AddSheet({ visible, start = 'grid', day, suggested, onClose, onM
             <View style={s.panel}>
               <Text style={s.panelH}>Weight</Text>
               <Pressable onPress={() => setCal(true)} style={s.dateBtn} accessibilityRole="button" accessibilityLabel="Choose the date">
-                <Icon d={P.calendar} size={16} color={c.limeText} sw={2.2} />
+                <Icon d={P.calendar} size={16} color={c.glowText} sw={2.2} />
                 <Text style={s.dateT}>{fmtDay(wDay)}</Text>
               </Pressable>
               <View style={s.weightBox}>
-                <TextInput style={s.weightIn} value={kg} onChangeText={setKg} keyboardType="decimal-pad" maxLength={6} selectTextOnFocus selectionColor={c.lime} accessibilityLabel="Weight in kilograms" />
+                <TextInput style={s.weightIn} value={kg} onChangeText={setKg} keyboardType="decimal-pad" maxLength={6} selectTextOnFocus selectionColor={c.glow} accessibilityLabel="Weight in kilograms" />
                 <Text style={s.unit}>kg</Text>
               </View>
               <Pressable onPress={() => { if (kgOk) { setWeight(wDay, Math.round(kgNum * 10) / 10); onClose(); } }} disabled={!kgOk} style={[s.cta, !kgOk && { opacity: 0.35 }]}><Text style={s.ctaT}>Save</Text></Pressable>
@@ -132,18 +132,18 @@ const mkStyles = () => StyleSheet.create({
   panel: { paddingHorizontal: 8, paddingBottom: 4, gap: 16 },
   panelH: { fontFamily: f.extra, fontSize: 22, color: c.ink, letterSpacing: -0.5, textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 18 },
-  step: { width: 56, height: 56, borderRadius: 28, backgroundColor: c.blueTint, alignItems: 'center', justifyContent: 'center' },
+  step: { width: 56, height: 56, borderRadius: 6, backgroundColor: c.blueTint, alignItems: 'center', justifyContent: 'center' },
   bigNum: { fontFamily: f.extra, fontSize: 38, color: c.ink, letterSpacing: -1, lineHeight: 48 },
   unit: { fontFamily: f.semi, fontSize: 16, color: c.muted, letterSpacing: 0 },
   sub: { fontFamily: f.medium, fontSize: 13, color: c.muted },
-  dateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, alignSelf: 'center', backgroundColor: c.tint, borderRadius: 20, paddingHorizontal: 16, height: 38, marginBottom: 10 },
-  dateT: { fontFamily: f.bold, fontSize: 14, color: c.limeText },
-  weightBox: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', backgroundColor: c.page, borderRadius: 24, paddingVertical: 10, gap: 6 },
+  dateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, alignSelf: 'center', backgroundColor: c.tint, borderRadius: 6, paddingHorizontal: 16, height: 38, marginBottom: 10 },
+  dateT: { fontFamily: f.bold, fontSize: 14, color: c.glowText },
+  weightBox: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', backgroundColor: c.page, borderRadius: 6, paddingVertical: 10, gap: 6 },
   weightIn: { fontFamily: f.extra, fontSize: 38, color: c.ink, letterSpacing: -1, minWidth: 100, textAlign: 'right', paddingVertical: 0 },
-  cta: { height: 56, borderRadius: 28, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center' },
-  ctaT: { fontFamily: f.bold, fontSize: 16, color: c.lime },
+  cta: { height: 56, borderRadius: 6, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.glow},
+  ctaT: { fontFamily: f.bold, fontSize: 16, color: '#fff', letterSpacing: 1.6, textTransform: 'uppercase' },
   linkW: { alignSelf: 'center', padding: 8 },
-  link: { fontFamily: f.bold, fontSize: 14, color: c.limeText },
+  link: { fontFamily: f.bold, fontSize: 14, color: c.glowText },
 });
 let s = mkStyles();
 onTheme(() => { s = mkStyles(); });

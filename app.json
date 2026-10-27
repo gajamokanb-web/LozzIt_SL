@@ -1,23 +1,23 @@
 {
   "expo": {
-    "name": "Lozzit",
-    "slug": "lozzit",
+    "name": "LozzIt SL",
+    "slug": "lozzit-sl",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "backgroundColor": "#F6F7F3",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#04060E",
     "ios": {
       "supportsTablet": false
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#9BDB3F",
+        "backgroundColor": "#04060E",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.lozzit.app",
+      "package": "com.lozzit.sl",
       "versionCode": 1,
       "permissions": [
         "android.permission.health.READ_STEPS"
@@ -39,7 +39,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Lozzit uses the camera to scan food barcodes.",
+          "cameraPermission": "LozzIt SL uses the camera to scan food barcodes.",
           "recordAudioAndroid": false
         }
       ]

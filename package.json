@@ -1,5 +1,5 @@
 {
-  "name": "lozzit",
+  "name": "lozzit-sl",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
+    "@expo-google-fonts/chakra-petch": "^0.4.1",
+    "@expo-google-fonts/cinzel": "^0.4.2",
     "@expo/metro-runtime": "~57.0.16",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "expo": "~57.0.28",
