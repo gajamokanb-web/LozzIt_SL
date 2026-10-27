@@ -224,27 +224,19 @@ function BarShape({ w }: { w: number }) {
   );
 }
 
+const TAB_IMG: Record<Tab, { on: number; off: number }> = {
+  home: { on: require('../assets/tabs/home_on.png'), off: require('../assets/tabs/home_off.png') },
+  stats: { on: require('../assets/tabs/stats_on.png'), off: require('../assets/tabs/stats_off.png') },
+  recipes: { on: require('../assets/tabs/recipes_on.png'), off: require('../assets/tabs/recipes_off.png') },
+  profile: { on: require('../assets/tabs/profile_on.png'), off: require('../assets/tabs/profile_off.png') },
+};
+const TAB_W = 62, TAB_H = 60;
+
+/** Tab tile: ornate framed button (icon + label baked into the artwork), accent-coloured when selected. */
 function TabItem({ t, on, onPress }: { t: Tab; on: boolean; onPress: () => void }) {
-  const st = TAB_STYLE[t];
-  const col = on ? st.color : NAV.idle;
   return (
-    <Pressable style={({ pressed }) => [s.tab, pressed && { opacity: 0.65 }]} onPress={onPress} hitSlop={4} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={LABELS[t]}>
-      <View style={s.tabIcon}>
-        {on && (
-          <Svg width={64} height={64} style={{ position: 'absolute', top: -15, left: 0 }} pointerEvents="none">
-            <Defs>
-              <RadialGradient id={`tg_${t}`} cx="32" cy="32" rx="30" ry="30" fx="32" fy="32" gradientUnits="userSpaceOnUse">
-                <Stop offset="0" stopColor={st.color} stopOpacity={0.4} />
-                <Stop offset="1" stopColor={st.color} stopOpacity={0} />
-              </RadialGradient>
-            </Defs>
-            <Circle cx={32} cy={32} r={30} fill={`url(#tg_${t})`} />
-          </Svg>
-        )}
-        <Icon d={st.d} size={24} color={col} fill={st.fill ? col : 'none'} sw={st.fill ? 1.6 : 2.1} />
-      </View>
-      <Text style={[s.tabLabel, { color: on ? st.color : NAV.idleLabel }, on && { fontFamily: f.semi }]}>{LABELS[t]}</Text>
-      <View style={[s.tabBar, { backgroundColor: st.color, opacity: on ? 1 : 0, ...glow(st.color, 8, 0.9) }]} />
+    <Pressable style={({ pressed }) => [s.tab, pressed && { opacity: 0.65 }]} onPress={onPress} hitSlop={3} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={LABELS[t]}>
+      <Image source={on ? TAB_IMG[t].on : TAB_IMG[t].off} style={{ width: TAB_W, height: TAB_H }} resizeMode="contain" fadeDuration={0} />
     </Pressable>
   );
 }
@@ -288,7 +280,7 @@ export function BottomNav({ tab, onTab, onAdd }: { tab: Tab; onTab: (t: Tab) => 
       <View style={s.tabs} pointerEvents="box-none">
         <TabItem t="home" on={tab === 'home'} onPress={() => onTab('home')} />
         <TabItem t="stats" on={tab === 'stats'} onPress={() => onTab('stats')} />
-        <View style={{ width: 2 * (BTN_R + 14) }} />
+        <View style={{ width: 2 * (BTN_R + 9) }} />
         <TabItem t="recipes" on={tab === 'recipes'} onPress={() => onTab('recipes')} />
         <TabItem t="profile" on={tab === 'profile'} onPress={() => onTab('profile')} />
       </View>
@@ -305,8 +297,8 @@ const mkStyles = () => StyleSheet.create({
   rule: { height: 1, backgroundColor: c.line, marginTop: 8 },
   ruleBright: { width: 54, height: 2, marginTop: -0.5, backgroundColor: c.glow, ...glow(c.glow, 8, 0.9) },
   navWrap: { position: 'absolute', height: OVER + BAR_H },
-  tabs: { position: 'absolute', left: 30, right: 30, top: OVER, height: BAR_H, flexDirection: 'row', alignItems: 'center' },
-  tab: { flex: 1, height: BAR_H, alignItems: 'center', justifyContent: 'center', paddingTop: 2 },
+  tabs: { position: 'absolute', left: 16, right: 16, top: OVER, height: BAR_H, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  tab: { width: TAB_W, height: BAR_H, alignItems: 'center', justifyContent: 'center' },
   tabIcon: { width: 64, height: 34, alignItems: 'center', justifyContent: 'center' },
   tabLabel: { fontFamily: f.medium, fontSize: 11.5, marginTop: 1 },
   tabBar: { width: 42, height: 3, borderRadius: 2, marginTop: 4 },
