@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Keyboard, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Image, Keyboard, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Text } from './i18n';
 import Svg, { Circle, Defs, G, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -249,84 +249,30 @@ function TabItem({ t, on, onPress }: { t: Tab; on: boolean; onPress: () => void 
   );
 }
 
-/** One flame tongue, drawn upwards from the origin. */
-const tongue = (w: number, h: number, bend: number) =>
-  `M ${-w} 0 C ${-w * 1.15} ${-h * 0.4} ${-w * 0.1 + bend} ${-h * 0.55} ${w * 0.2 + bend * 1.6} ${-h} C ${w * 0.15 + bend} ${-h * 0.6} ${w * 1.2} ${-h * 0.42} ${w} 0 Z`;
-const FLAMES = [
-  { a: -64, w: 4.5, h: 17, b: -3 }, { a: -46, w: 5, h: 24, b: 4 }, { a: -27, w: 5.5, h: 30, b: -4 }, { a: -9, w: 6, h: 36, b: 5 },
-  { a: 9, w: 6, h: 33, b: -5 }, { a: 27, w: 5.5, h: 27, b: 4 }, { a: 46, w: 5, h: 22, b: -3 }, { a: 65, w: 4.5, h: 16, b: 3 },
+const GATE_FRAMES = [
+  require('../assets/gate/f00.png'), require('../assets/gate/f01.png'), require('../assets/gate/f02.png'), require('../assets/gate/f03.png'),
+  require('../assets/gate/f04.png'), require('../assets/gate/f05.png'), require('../assets/gate/f06.png'), require('../assets/gate/f07.png'),
+  require('../assets/gate/f08.png'), require('../assets/gate/f09.png'), require('../assets/gate/f10.png'), require('../assets/gate/f11.png'),
 ];
+const GATE_FRAME_MS = 120; // 12 frames, looping (idle pulse / breathing)
+const GATE_SIZE = 116; // sprite is 137px with the ring about 80px wide: scaled so the ring is about the notch size
+const GATE_CX = 58, GATE_CY = 66; // ring centre inside the scaled sprite
 
-/** The violet gate: aura, flames, ring, "+" and the four compass diamonds. Pressed = shrinks and dims. */
+/** The "+" gate: a 12-frame looping sprite (violet ring breathing with flames). Pressed = shrinks and dims. */
 function GateButton({ onPress }: { onPress: () => void }) {
-  const pulse = React.useRef(new Animated.Value(0)).current;
-  const flick = React.useRef(new Animated.Value(0)).current;
+  const [frame, setFrame] = useState(0);
   const press = React.useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    const mk = (v: Animated.Value, ms: number) => Animated.loop(Animated.sequence([
-      Animated.timing(v, { toValue: 1, duration: ms, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      Animated.timing(v, { toValue: 0, duration: ms, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-    ]));
-    const a = mk(pulse, 1700), b = mk(flick, 430);
-    a.start(); b.start();
-    return () => { a.stop(); b.stop(); };
-  }, [pulse, flick]);
+    const id = setInterval(() => setFrame((n) => (n + 1) % GATE_FRAMES.length), GATE_FRAME_MS);
+    return () => clearInterval(id);
+  }, []);
   const to = (v: number) => Animated.timing(press, { toValue: v, duration: 90, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
-  const auraScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] });
-  const auraOp = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] });
-  const flameScale = flick.interpolate({ inputRange: [0, 1], outputRange: [0.93, 1.07] });
-  const flameOp = Animated.multiply(flick.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }), press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.35] }));
-  const btnScale = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.92] });
-  const btnOp = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.85] });
-  const layer = { position: 'absolute' as const, left: BTN_R - CC.x, top: BTN_R - CC.y, width: CANVAS, height: CANVAS };
+  const scale = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.92] });
+  const op = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.8] });
   return (
     <Pressable style={s.gate} onPress={onPress} onPressIn={() => to(1)} onPressOut={() => to(0)} accessibilityRole="button" accessibilityLabel="Add">
-      <Animated.View pointerEvents="none" style={[layer, { opacity: auraOp, transform: [{ scale: auraScale }] }]}>
-        <Svg width={CANVAS} height={CANVAS}>
-          <Defs>
-            <RadialGradient id="aura" cx={CC.x} cy={CC.y} rx={50} ry={50} fx={CC.x} fy={CC.y} gradientUnits="userSpaceOnUse">
-              <Stop offset="0.45" stopColor="#8B4DFF" stopOpacity={0.42} />
-              <Stop offset="1" stopColor="#8B4DFF" stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
-          <Circle cx={CC.x} cy={CC.y} r={50} fill="url(#aura)" />
-        </Svg>
-      </Animated.View>
-      <Animated.View pointerEvents="none" style={[layer, { opacity: flameOp, transform: [{ scale: flameScale }] }]}>
-        <Svg width={CANVAS} height={CANVAS}>
-          <Defs>
-            <LinearGradient id="flame" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="-38">
-              <Stop offset="0" stopColor="#D6B4FF" stopOpacity={0.95} />
-              <Stop offset="0.45" stopColor="#8B4DFF" stopOpacity={0.7} />
-              <Stop offset="1" stopColor="#4B1FB0" stopOpacity={0} />
-            </LinearGradient>
-          </Defs>
-          {FLAMES.map((fl, i) => {
-            const r = (fl.a * Math.PI) / 180, base = BTN_R + 1;
-            return (
-              <G key={i} transform={`translate(${CC.x + Math.sin(r) * base} ${CC.y - Math.cos(r) * base}) rotate(${fl.a})`}>
-                <Path d={tongue(fl.w, fl.h, fl.b)} fill="url(#flame)" />
-              </G>
-            );
-          })}
-        </Svg>
-      </Animated.View>
-      <Animated.View pointerEvents="none" style={[layer, { opacity: btnOp, transform: [{ scale: btnScale }] }]}>
-        <Svg width={CANVAS} height={CANVAS}>
-          <Defs>
-            <RadialGradient id="gate" cx={CC.x} cy={CC.y - 6} rx={BTN_R} ry={BTN_R} fx={CC.x} fy={CC.y - 8} gradientUnits="userSpaceOnUse">
-              <Stop offset="0" stopColor={NAV.btnIn} />
-              <Stop offset="1" stopColor={NAV.btnOut} />
-            </RadialGradient>
-          </Defs>
-          <Circle cx={CC.x} cy={CC.y} r={BTN_R + 3} fill="none" stroke={NAV.line} strokeOpacity={0.3} strokeWidth={5} />
-          <Circle cx={CC.x} cy={CC.y} r={BTN_R} fill="url(#gate)" stroke={NAV.ring} strokeWidth={2.6} />
-          <Circle cx={CC.x} cy={CC.y} r={BTN_R - 5} fill="none" stroke={NAV.line} strokeOpacity={0.55} strokeWidth={1} />
-          <Path d={`M ${CC.x - 12} ${CC.y} H ${CC.x + 12} M ${CC.x} ${CC.y - 12} V ${CC.y + 12}`} stroke={NAV.plus} strokeWidth={3.6} strokeLinecap="round" />
-          {[[0, -1], [1, 0], [0, 1], [-1, 0]].map(([ux, uy], i) => (
-            <Path key={i} d={diamond(CC.x + ux * (BTN_R + 8), CC.y + uy * (BTN_R + 8), ux === 0 ? 3.2 : 4.4, uy === 0 ? 3.2 : 4.4)} fill={NAV.ring} />
-          ))}
-        </Svg>
+      <Animated.View pointerEvents="none" style={{ position: 'absolute', left: BTN_R - GATE_CX, top: BTN_R - GATE_CY, width: GATE_SIZE, height: GATE_SIZE, opacity: op, transform: [{ scale }] }}>
+        <Image source={GATE_FRAMES[frame]} style={{ width: GATE_SIZE, height: GATE_SIZE }} fadeDuration={0} />
       </Animated.View>
     </Pressable>
   );
