@@ -12,7 +12,7 @@ import { letterOf, lookupBarcode, searchCiqual, searchMine, sortKey, type Food }
 import { readLabel, DEFAULT_MODEL } from '../vision';
 import { FOOD_ICON_LIST, FoodIcon, suggestIcon } from '../foodIcons';
 import { useStore } from '../store';
-import { Backdrop, card, Icon, P, KbView } from '../ui';
+import { Backdrop, card, Frame, Icon, P, KbView } from '../ui';
 import { FactorModal } from './Factor';
 
 /** pick: choose a food for something else (e.g. a recipe) instead of logging it; the callback gets the food. */
@@ -478,58 +478,75 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
 
         {mode === 'main' && (
           <>
-            <View style={s.tabs}>
-              {([['search', 'Search'], ['mine', 'My Foods'], ['recipes', 'Recipes'], ['meals', 'Meals']] as const).filter(([k]) => !(target.pick && (k === 'meals' || k === 'recipes'))).map(([k, l]) => (
-                <Pressable key={k} onPress={() => setTab(k)} style={[s.tabB, tab === k && { backgroundColor: c.btn }]} accessibilityRole="button">
-                  <Text style={[s.tabT, tab === k && { color: c.glowText }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{l}</Text>
-                </Pressable>
-              ))}
-            </View>
+            {tab !== 'search' && (
+              <Frame style={s.block} contentStyle={s.blockIn}>
+                <View style={s.tabs}>
+                  {([['search', 'Search'], ['mine', 'My Foods'], ['recipes', 'Recipes'], ['meals', 'Meals']] as const).filter(([k]) => !(target.pick && (k === 'meals' || k === 'recipes'))).map(([k, l]) => (
+                    <Pressable key={k} onPress={() => setTab(k)} style={[s.tabB, tab === k && { backgroundColor: c.btn }]} accessibilityRole="button">
+                      <Text style={[s.tabT, tab === k && { color: c.glowText }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{l}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </Frame>
+            )}
 
             {tab === 'search' && (
               <>
-                <View style={s.searchRow}>
-                  <TextInput
-                    style={s.search}
-                    value={query}
-                    onChangeText={setQuery}
-                    placeholder="Search a food"
-                    placeholderTextColor={c.soft}
-                    returnKeyType="search"
-                    selectionColor={c.glow}
-                    autoCorrect={false}
-                  />
-                  <Pressable onPress={() => { setMiss(null); scanned.current = false; setMode('scan'); }} style={s.scanBtn} accessibilityLabel="Scan barcode"><Icon d={P.scan} size={22} color={c.onGlow} /></Pressable>
-                </View>
-                <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 6, paddingBottom: Math.max(bottom, 16) + 20 }}>
+                <Frame style={s.block} contentStyle={s.blockIn}>
+                  <View style={[s.tabs, { paddingHorizontal: 0 }]}>
+                    {([['search', 'Search'], ['mine', 'My Foods'], ['recipes', 'Recipes'], ['meals', 'Meals']] as const).filter(([k]) => !(target.pick && (k === 'meals' || k === 'recipes'))).map(([k, l]) => (
+                      <Pressable key={k} onPress={() => setTab(k)} style={[s.tabB, tab === k && { backgroundColor: c.btn }]} accessibilityRole="button">
+                        <Text style={[s.tabT, tab === k && { color: c.glowText }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{l}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  <View style={[s.searchRow, { paddingHorizontal: 0 }]}>
+                    <TextInput
+                      style={s.search}
+                      value={query}
+                      onChangeText={setQuery}
+                      placeholder="Search a food"
+                      placeholderTextColor="#fff"
+                      returnKeyType="search"
+                      selectionColor={c.glow}
+                      autoCorrect={false}
+                    />
+                    <Pressable onPress={() => { setMiss(null); scanned.current = false; setMode('scan'); }} style={s.scanBtn} accessibilityLabel="Scan barcode"><Icon d={P.scan} size={22} color={c.onGlow} /></Pressable>
+                  </View>
                   {query.trim().length === 0 && (
-                    <>
-                      <View style={{ flexDirection: 'row', gap: 10 }}>
-                        {!target.pick && (
-                          <Pressable onPress={() => { setLabelMsg(''); setMode('quick'); }} style={[s.quick, card, { flex: 1 }]} accessibilityRole="button">
-                            <Icon d={P.flame} size={18} color={c.glowText} sw={2.4} />
-                            <Text style={s.quickT}>Quick add</Text>
-                          </Pressable>
-                        )}
-                        <Pressable onPress={() => openCreate('main')} style={[s.quick, card, { flex: 1 }]} accessibilityRole="button">
-                          <Icon d={P.plus} size={18} color={c.glowText} sw={2.6} />
-                          <Text style={s.quickT}>Create food</Text>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      {!target.pick && (
+                        <Pressable onPress={() => { setLabelMsg(''); setMode('quick'); }} style={[s.quick, card, { flex: 1 }]} accessibilityRole="button">
+                          <Icon d={P.flame} size={18} color="#fff" sw={2.4} />
+                          <Text style={s.quickT}>Quick add</Text>
                         </Pressable>
-                      </View>
-                      {recents.length > 0 && <Text style={s.sect}>Recent</Text>}
-                      {recents.map((fd) => <FoodRow key={fd.key} food={fd} onPress={() => pick(fd)} />)}
-                      {recents.length === 0 && <Text style={s.hint}>Type a food name, or scan a barcode.</Text>}
-                    </>
+                      )}
+                      <Pressable onPress={() => openCreate('main')} style={[s.quick, card, { flex: 1 }]} accessibilityRole="button">
+                        <Icon d={P.plus} size={18} color="#fff" sw={2.6} />
+                        <Text style={s.quickT}>Create food</Text>
+                      </Pressable>
+                    </View>
                   )}
-                  {query.trim().length === 1 && <Text style={s.hint}>Keep typing…</Text>}
-                  {results.map((fd) => <FoodRow key={fd.key} food={fd} onPress={() => pick(fd)} />)}
-                  {query.trim().length >= 2 && results.length === 0 && (
-                    <>
-                      <Text style={s.hint}>Nothing found for "{query}".</Text>
-                      <Pressable onPress={() => openCreate('main', { name: query.trim() })} style={{ paddingVertical: 12 }}><Text style={s.link}>Create “{query.trim()}”</Text></Pressable>
-                    </>
-                  )}
-                  {query.trim().length >= 2 && <Text style={s.credit}>Source: Anses, Table de composition nutritionnelle Ciqual 2025 (Licence Ouverte Etalab 2.0).</Text>}
+                </Frame>
+                <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: Math.max(bottom, 16) + 20 }}>
+                  <Frame style={s.block} contentStyle={s.blockIn}>
+                    {query.trim().length === 0 && (
+                      <>
+                        {recents.length > 0 && <Text style={s.sect}>Recent</Text>}
+                        {recents.map((fd) => <FoodRow key={fd.key} food={fd} onPress={() => pick(fd)} />)}
+                        {recents.length === 0 && <Text style={s.hint}>Type a food name, or scan a barcode.</Text>}
+                      </>
+                    )}
+                    {query.trim().length === 1 && <Text style={s.hint}>Keep typing…</Text>}
+                    {results.map((fd) => <FoodRow key={fd.key} food={fd} onPress={() => pick(fd)} />)}
+                    {query.trim().length >= 2 && results.length === 0 && (
+                      <>
+                        <Text style={s.hint}>Nothing found for "{query}".</Text>
+                        <Pressable onPress={() => openCreate('main', { name: query.trim() })} style={{ paddingVertical: 12 }}><Text style={s.link}>Create “{query.trim()}”</Text></Pressable>
+                      </>
+                    )}
+                    {query.trim().length >= 2 && <Text style={s.credit}>Source: Anses, Table de composition nutritionnelle Ciqual 2025 (Licence Ouverte Etalab 2.0).</Text>}
+                  </Frame>
                 </ScrollView>
               </>
             )}
@@ -642,6 +659,7 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
 
         {mode === 'quick' && (
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 12 }}>
+            <Frame style={{ marginTop: 4 }} contentStyle={s.blockIn}>
             <MealChips meal={meal} setMeal={setMeal} />
             <Pressable onPress={() => openLabel('quick')} style={[s.labelBtn, card]} accessibilityRole="button" accessibilityLabel="Autofill from a nutrition label">
               <Icon d={P.camera} size={20} color={c.glowText} sw={2.2} />
@@ -673,11 +691,13 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
               ))}
             </View>
             <Pressable onPress={quickAdd} disabled={num(qKcal) <= 0} style={[s.cta, num(qKcal) <= 0 && { opacity: 0.35 }]}><Text style={s.ctaText}>Add to log</Text></Pressable>
+                      </Frame>
           </ScrollView>
         )}
 
         {mode === 'create' && (
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 12, paddingBottom: Math.max(bottom, 16) + 30 }}>
+            <Frame style={{ marginTop: 4 }} contentStyle={s.blockIn}>
             {!editKey && (
               <Pressable onPress={() => openLabel('create')} style={[s.labelBtn, card]} accessibilityRole="button" accessibilityLabel="Scan nutrition label">
                 <Icon d={P.camera} size={20} color={c.glowText} sw={2.2} />
@@ -694,7 +714,7 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
                 <Text style={s.iconPickT}>Change</Text>
               </Pressable>
               <TextInput
-                style={[s.input, { flex: 1 }]}
+                style={[s.input, { flex: 1, minWidth: 0 }]}
                 value={nName}
                 onChangeText={(t) => { setNName(t); if (!nIconTouched) setNIcon(suggestIcon(t)); }}
                 placeholder="Food name"
@@ -745,6 +765,7 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
               </View>
             </View>
             <Pressable onPress={createFood} disabled={!createOk} style={[s.cta, !createOk && { opacity: 0.35 }]} accessibilityRole="button"><Text style={s.ctaText}>{editKey ? 'Save changes' : 'Save food'}</Text></Pressable>
+                      </Frame>
           </ScrollView>
         )}
 
@@ -847,6 +868,7 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
 
         {mode === 'qty' && food && totals && (
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: Math.max(bottom, 16) + 20 }}>
+            <Frame style={{ marginTop: 4 }} contentStyle={s.blockIn}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <FoodIcon name={food.name} icon={food.icon} size={56} />
               <View style={{ flex: 1 }}>
@@ -890,6 +912,7 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
                 <Text style={[s.link, { color: c.red }]}>Remove from log</Text>
               </Pressable>
             )}
+                      </Frame>
           </ScrollView>
         )}
       </KbView>
@@ -944,10 +967,12 @@ const mkStyles = () => StyleSheet.create({
   recName: { fontFamily: f.medium, fontSize: 15.5, color: c.ink },
   tabT: { fontFamily: f.bold, fontSize: 12.5, color: c.ink },
   searchRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 8 },
-  search: { ...card, flex: 1, borderRadius: 6, paddingHorizontal: 18, height: 52, fontFamily: f.medium, fontSize: 16, color: c.ink },
+  search: { ...card, flex: 1, borderRadius: 6, paddingHorizontal: 18, height: 52, fontFamily: f.medium, fontSize: 16, color: '#fff' },
+  block: { marginHorizontal: 10, marginTop: 4 },
+  blockIn: { paddingHorizontal: 10, paddingVertical: 10, gap: 10 },
   scanBtn: { width: 52, height: 52, borderRadius: 6, backgroundColor: c.glow, alignItems: 'center', justifyContent: 'center' },
   quick: { borderRadius: 6, paddingHorizontal: 14, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  quickT: { fontFamily: f.bold, fontSize: 14.5, color: c.glowText },
+  quickT: { fontFamily: f.bold, fontSize: 14.5, color: '#fff' },
   sect: { fontFamily: f.extra, fontSize: 16, color: c.ink, marginTop: 18, marginBottom: 2 },
   hint: { fontFamily: f.regular, fontSize: 14.5, color: c.muted, marginTop: 18, lineHeight: 21 },
   hintS: { fontFamily: f.medium, fontSize: 13, color: c.muted },
