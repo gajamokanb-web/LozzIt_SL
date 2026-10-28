@@ -5,22 +5,26 @@ import { Text, TextInput, tr } from '../i18n';
 import { Linking } from 'react-native';
 import { norm } from '../foods';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { c, f, onTheme, textGlow } from '../theme';
+import { alpha, c, f, onTheme, textGlow } from '../theme';
 import { fmt } from '../domain';
 import type { Food } from '../foods';
 import { FoodIcon } from '../foodIcons';
 import { convertRecipe, DRAFT, newId, type Converted, type Ingredient, type Recipe } from '../recipes';
 import { DEFAULT_MODEL } from '../vision';
 import { useStore } from '../store';
-import { card, Disc, Icon, P, Screen, Title, KbView } from '../ui';
+import { card, Disc, Frame, Icon, P, Screen, Title, KbView } from '../ui';
 
-/** Neon logos for the recipe categories (same set as the food sheet). */
+/** Neon logos for the recipe categories (cropped from the supplied "Ajouter une recette" mockup). */
 const CAT_IMG: Record<string, any> = {
-  Breakfast: require('../../assets/add/breakfast.png'),
-  'Main dish': require('../../assets/add/lunch.png'),
-  Dessert: require('../../assets/add/snack_pm.png'),
-  Other: require('../../assets/add/snack_am.png'),
+  Breakfast: require('../../assets/recipes/breakfast.png'),
+  'Main dish': require('../../assets/recipes/main.png'),
+  Dessert: require('../../assets/recipes/dessert.png'),
+  Other: require('../../assets/recipes/other.png'),
 };
+const IG_IMG = require('../../assets/recipes/instagram.png');
+const IG_COLOR = '#FF4FD8';
+const CAT_SUB: Record<string, string> = { Breakfast: 'Add a breakfast recipe', 'Main dish': 'Add a main dish recipe', Dessert: 'Add a dessert recipe', Other: 'Add another recipe (snack, drink, etc.)' };
+const CAT_ROW: Record<string, string> = { Breakfast: '#FFB020', 'Main dish': '#2FC8FF', Dessert: '#FF5FA8', Other: '#3DF5A0' };
 const CatDisc = ({ cat, size }: { cat: string; size: number }) =>
   CAT_IMG[cat]
     ? <Image source={CAT_IMG[cat]} style={{ width: size, height: size }} />
@@ -143,25 +147,36 @@ export function RecipeSheet({ visible, onClose, onNew, onImport }: { visible: bo
     <Modal visible={show} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <Animated.View style={[StyleSheet.absoluteFill, s.backdrop, { opacity: fade }]} />
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
-      <Animated.View style={[s.sheet, { paddingBottom: Math.max(bottom, 16) + 12, transform: [{ translateY: y }] }]}>
-        <View style={s.grab} />
-        <Text style={s.sheetT}>Add a recipe</Text>
-        <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={{ gap: 4 }}>
-          <Pressable onPress={() => { onClose(); onImport(); }} style={s.sRow} accessibilityRole="button" accessibilityLabel="Import from Instagram">
-            <Disc d={P.camera} bg="#C13584" size={44} />
-            <View style={{ flex: 1 }}>
-              <Text style={s.sName}>Import from Instagram</Text>
-            </View>
-          </Pressable>
-          {state.recipeCats.filter((k) => k !== DRAFT).map((cat) => (
-            <Pressable key={cat} onPress={() => { onClose(); onNew(cat); }} style={s.sRow} accessibilityRole="button" accessibilityLabel={`New ${cat}`}>
-              <CatDisc cat={cat} size={44} />
+      <Animated.View style={[s.sheet, { paddingBottom: Math.max(bottom, 12) + 8, transform: [{ translateY: y }] }]}>
+        <Frame bw={11} style={s.sheetFrame} contentStyle={s.sheetIn}>
+          <View style={s.sheetHead}>
+            <Text style={{ fontSize: 20, color: c.glow }}>✦</Text>
+            <Text style={s.sheetT}>Add a recipe</Text>
+          </View>
+          <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ gap: 9 }} showsVerticalScrollIndicator={false}>
+            <Pressable onPress={() => { onClose(); onImport(); }} style={[s.sCard, { borderColor: IG_COLOR, backgroundColor: alpha(IG_COLOR, 0.1) }]} accessibilityRole="button" accessibilityLabel="Import from Instagram">
+              <Image source={IG_IMG} style={s.sImg} />
               <View style={{ flex: 1 }}>
-                <Text style={s.sName}>{cat}</Text>
+                <Text style={s.sName}>Import from Instagram</Text>
+                <Text style={s.sSub}>Get a recipe from an Instagram post</Text>
               </View>
+              <Icon d={P.next} size={20} color="#fff" sw={2.4} />
             </Pressable>
-          ))}
-        </ScrollView>
+            {state.recipeCats.filter((k) => k !== DRAFT).map((cat) => {
+              const col = CAT_ROW[cat] ?? catBg(cat);
+              return (
+                <Pressable key={cat} onPress={() => { onClose(); onNew(cat); }} style={[s.sCard, { borderColor: col, backgroundColor: alpha(col, 0.1) }]} accessibilityRole="button" accessibilityLabel={`New ${cat}`}>
+                  <CatDisc cat={cat} size={52} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.sName}>{cat}</Text>
+                    <Text style={s.sSub}>{CAT_SUB[cat] ?? `Add a ${cat} recipe`}</Text>
+                  </View>
+                  <Icon d={P.next} size={20} color="#fff" sw={2.4} />
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </Frame>
       </Animated.View>
     </Modal>
   );
@@ -583,12 +598,16 @@ const mkStyles = () => StyleSheet.create({
   rSub: { fontFamily: f.medium, fontSize: 12.5, color: c.muted, marginTop: 2 },
   badge: { fontFamily: f.bold, fontSize: 11, color: '#C13584', backgroundColor: '#C1358422', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, overflow: 'hidden' },
   backdrop: { flex: 1, backgroundColor: 'rgba(21,32,15,0.45)' },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: c.card, borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 20, paddingTop: 10 },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 8 },
+  sheetFrame: { backgroundColor: c.card, borderRadius: 26 },
+  sheetIn: { paddingHorizontal: 6, paddingTop: 4, paddingBottom: 6 },
+  sheetHead: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 6, paddingTop: 6, paddingBottom: 14 },
   grab: { alignSelf: 'center', width: 42, height: 5, borderRadius: 3, backgroundColor: c.line, marginBottom: 12 },
-  sheetT: { fontFamily: f.extra, fontSize: 20, color: c.ink, marginBottom: 10 },
-  sRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10 },
-  sName: { fontFamily: f.bold, fontSize: 16, color: c.ink },
-  sSub: { fontFamily: f.medium, fontSize: 12.5, color: c.muted, marginTop: 1 },
+  sheetT: { fontFamily: f.display, fontSize: 18, color: c.ink, letterSpacing: 1, textTransform: 'uppercase' },
+  sCard: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingLeft: 8, paddingRight: 14, borderRadius: 8, borderWidth: 1 },
+  sImg: { width: 52, height: 52 },
+  sSub: { fontFamily: f.regular, fontSize: 12.5, color: c.muted, marginTop: 2, lineHeight: 17 },
+  sName: { fontFamily: f.semi, fontSize: 16, color: '#fff' },
   mWrap: { flex: 1, backgroundColor: 'rgba(21,32,15,0.45)', justifyContent: 'center', padding: 20 },
   mCard: { backgroundColor: c.card, borderRadius: 6, padding: 20, gap: 10, borderWidth: 1, borderColor: c.panelLine},
   mTitle: { fontFamily: f.extra, fontSize: 20, color: c.ink },

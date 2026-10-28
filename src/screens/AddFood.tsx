@@ -661,6 +661,8 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 12 }}>
             <Frame style={{ marginTop: 4 }} contentStyle={s.blockIn}>
             <MealChips meal={meal} setMeal={setMeal} />
+            </Frame>
+            <Frame contentStyle={s.blockIn}>
             <Pressable onPress={() => openLabel('quick')} style={[s.labelBtn, card]} accessibilityRole="button" accessibilityLabel="Autofill from a nutrition label">
               <Icon d={P.camera} size={20} color={c.glowText} sw={2.2} />
               <View style={{ flex: 1 }}>
@@ -690,13 +692,14 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
                 </View>
               ))}
             </View>
+            </Frame>
             <Pressable onPress={quickAdd} disabled={num(qKcal) <= 0} style={[s.cta, num(qKcal) <= 0 && { opacity: 0.35 }]}><Text style={s.ctaText}>Add to log</Text></Pressable>
-                      </Frame>
           </ScrollView>
         )}
 
         {mode === 'create' && (
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 12, paddingBottom: Math.max(bottom, 16) + 30 }}>
+            {(!editKey || !!labelMsg) && (
             <Frame style={{ marginTop: 4 }} contentStyle={s.blockIn}>
             {!editKey && (
               <Pressable onPress={() => openLabel('create')} style={[s.labelBtn, card]} accessibilityRole="button" accessibilityLabel="Scan nutrition label">
@@ -708,6 +711,9 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
               </Pressable>
             )}
             {labelMsg ? <Text style={[s.hintS, { color: /^Values|^Only/.test(labelMsg) ? c.glowText : c.red }]}>{labelMsg}</Text> : null}
+            </Frame>
+            )}
+            <Frame style={!editKey || !!labelMsg ? undefined : { marginTop: 4 }} contentStyle={s.blockIn}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <Pressable onPress={() => { setIconQ(''); setMode('icons'); }} style={[s.iconPick, card]} accessibilityRole="button" accessibilityLabel="Choose a logo">
                 <FoodIcon name={nName} icon={nIcon} size={52} />
@@ -725,6 +731,8 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
               />
             </View>
             <TextInput style={s.input} value={nBrand} onChangeText={setNBrand} placeholder="Brand (optional)" placeholderTextColor={c.soft} maxLength={40} selectionColor={c.glow} />
+            </Frame>
+            <Frame contentStyle={s.blockIn}>
             <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
               <Text style={s.fieldL}>Values per</Text>
               <TextInput style={s.basisIn} value={nBasis} onChangeText={setNBasis} keyboardType="decimal-pad" maxLength={6} selectTextOnFocus selectionColor={c.glow} accessibilityLabel="Quantity the values are for" />
@@ -764,8 +772,8 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
                 <TextInput style={s.macroIn} value={nCode} onChangeText={setNCode} placeholder="—" placeholderTextColor={c.soft} keyboardType="number-pad" maxLength={14} selectionColor={c.glow} />
               </View>
             </View>
+            </Frame>
             <Pressable onPress={createFood} disabled={!createOk} style={[s.cta, !createOk && { opacity: 0.35 }]} accessibilityRole="button"><Text style={s.ctaText}>{editKey ? 'Save changes' : 'Save food'}</Text></Pressable>
-                      </Frame>
           </ScrollView>
         )}
 
@@ -880,6 +888,8 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
               )}
             </View>
             {!editing && <MealChips meal={meal} setMeal={setMeal} />}
+            </Frame>
+            <Frame contentStyle={s.blockIn}>
             <View style={[s.qtyBox, card]}>
               <Pressable onPress={() => setQty(String(Math.max(0, +(q - step).toFixed(2))))} style={s.stepper} hitSlop={6} accessibilityLabel="Less"><Icon d={P.minus} size={20} sw={2.6} /></Pressable>
               <View style={{ flex: 1, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' }}>
@@ -904,6 +914,7 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
                 <Text style={s.sumMacros}>{EXTRAS.filter((x) => totals[x.k] != null).map((x) => `${x.label.toLowerCase()} ${Math.round((totals[x.k] as number) * 10) / 10} g`).join(' · ')}</Text>
               )}
             </View>
+            </Frame>
             <Pressable onPress={save} disabled={q <= 0} style={[s.cta, q <= 0 && { opacity: 0.35 }]} accessibilityRole="button">
               <Text style={s.ctaText}>{editing ? 'Save' : `Add to ${mealLabel.toLowerCase()}`}</Text>
             </Pressable>
@@ -912,7 +923,6 @@ export function AddFood({ target, onClose }: { target: AddTarget | null; onClose
                 <Text style={[s.link, { color: c.red }]}>Remove from log</Text>
               </Pressable>
             )}
-                      </Frame>
           </ScrollView>
         )}
       </KbView>
