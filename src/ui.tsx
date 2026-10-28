@@ -86,31 +86,100 @@ export function Corners({ color = c.glow, size = 11, thick = 2 }: { color?: stri
   );
 }
 
-/** Void background: a cold glow from the top, a violet haze from the bottom and a few drifting motes of mana. */
+const FRAME_IMG = require('../assets/frame.png'); // 540x217 ornate frame, 9-slice: 46px corners
+const FRAME_W = 540, FRAME_H = 217, FRAME_SLICE = 46;
+
+/** One rectangle cut out of the frame artwork and stretched into (dx, dy, dw, dh). */
+function FramePiece({ sx, sy, sw, sh, dx, dy, dw, dh }: { sx: number; sy: number; sw: number; sh: number; dx: number; dy: number; dw: number; dh: number }) {
+  const kx = dw / sw, ky = dh / sh;
+  return (
+    <View pointerEvents="none" style={{ position: 'absolute', left: dx, top: dy, width: dw, height: dh, overflow: 'hidden' }}>
+      <Image source={FRAME_IMG} resizeMode="stretch" fadeDuration={0} style={{ position: 'absolute', left: -sx * kx, top: -sy * ky, width: FRAME_W * kx, height: FRAME_H * ky }} />
+    </View>
+  );
+}
+
+/** Block drawn with the ornate frame (CSS border-image 9-slice in the mockups). The content sits inside a `bw` px border. */
+export function Frame({ children, style, bw = 11, contentStyle }: { children?: React.ReactNode; style?: any; bw?: number; contentStyle?: any }) {
+  const [sz, setSz] = useState({ w: 0, h: 0 });
+  const { w, h } = sz;
+  const S = FRAME_SLICE, mw = FRAME_W - 2 * S, mh = FRAME_H - 2 * S;
+  const xs = [[0, S, 0, bw], [S, mw, bw, Math.max(0, w - 2 * bw)], [S + mw, S, Math.max(0, w - bw), bw]];
+  const ys = [[0, S, 0, bw], [S, mh, bw, Math.max(0, h - 2 * bw)], [S + mh, S, Math.max(0, h - bw), bw]];
+  return (
+    <View style={[{ padding: bw }, style]} onLayout={(e) => { const { width, height } = e.nativeEvent.layout; setSz((o) => (Math.abs(o.w - width) < 0.5 && Math.abs(o.h - height) < 0.5 ? o : { w: width, h: height })); }}>
+      {w > 0 && h > 0 && ys.map((y, j) => xs.map((x, i) => <FramePiece key={`${i}${j}`} sx={x[0]} sy={y[0]} sw={x[1]} sh={y[1]} dx={x[2]} dy={y[2]} dw={x[3]} dh={y[3]} />))}
+      <View style={contentStyle}>{children}</View>
+    </View>
+  );
+}
+
+const WALLPAPER = require('../assets/home/wallpaper.jpg');
+const SPARK = require('../assets/spark.png');
+const MOTE_COLORS = ['#A36BFF', '#C8A2FF', '#7A4DFF', '#8AA0FF', '#E6D6FF'];
+const MOTES = 110; // particles
+const MOTE_SPEED = 1.7;
+const WALL_DIM = 0.6; // darkening over the wallpaper
+
+type Mote = { x: number; r: number; speed: number; t0: number; sway: number; period: number; a: number; col: string };
+
+/** One drifting mote of light: rises slowly, sways and twinkles (native-driven loops). */
+function MoteView({ m, h }: { m: Mote; h: number }) {
+  const y = useRef(new Animated.Value(m.t0)).current;
+  const ph = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const dur = ((h + 22) / m.speed) * 1000;
+    let stop = false;
+    const run = (from: number) => Animated.timing(y, { toValue: 1, duration: Math.max(1, (1 - from) * dur), easing: Easing.linear, useNativeDriver: true }).start(({ finished }) => { if (finished && !stop) { y.setValue(0); run(0); } });
+    run(m.t0);
+    const swing = Animated.loop(Animated.timing(ph, { toValue: 1, duration: m.period, easing: Easing.linear, useNativeDriver: true }));
+    swing.start();
+    return () => { stop = true; y.stopAnimation(); swing.stop(); };
+  }, [h, m, y, ph]);
+  const d = m.r * 2.4;
+  const tw = ph.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: [m.a * 0.7, m.a, m.a * 0.7, m.a * 0.15, m.a * 0.7] });
+  const edge = y.interpolate({ inputRange: [0, 0.03, 0.9, 1], outputRange: [0.3, 1, 1, 0] });
+  return (
+    <Animated.Image
+      source={SPARK}
+      fadeDuration={0}
+      style={{
+        position: 'absolute', left: m.x - d / 2, top: 0, width: d, height: d, tintColor: m.col,
+        opacity: Animated.multiply(tw, edge),
+        transform: [{ translateY: y.interpolate({ inputRange: [0, 1], outputRange: [h + 10, -12] }) }, { translateX: ph.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: [0, m.sway, 0, -m.sway, 0] }) }],
+      }}
+    />
+  );
+}
+
+/** App background: the wallpaper, darkened from the top, with particles of light drifting up. */
 export function Backdrop() {
   const { width, height } = useWindowDimensions();
-  const motes = React.useMemo(() => {
-    let seed = 7;
+  const motes = React.useMemo<Mote[]>(() => {
+    let seed = 11;
     const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-    return Array.from({ length: 34 }, () => ({ x: rnd() * width, y: rnd() * height, r: 0.6 + rnd() * 1.4, o: 0.12 + rnd() * 0.35, hue: rnd() > 0.72 ? 1 : 0 }));
-  }, [width, height]);
+    return Array.from({ length: MOTES }, () => {
+      const big = rnd() < 0.15;
+      return {
+        x: rnd() * width, r: big ? 5 + rnd() * 7 : 1.2 + rnd() * 2.6, speed: (0.12 + rnd() * 0.5) * 60 * MOTE_SPEED, t0: rnd(),
+        sway: 4 + rnd() * 8, period: 3000 + rnd() * 6000, a: big ? 0.12 + rnd() * 0.1 : 0.35 + rnd() * 0.5, col: MOTE_COLORS[Math.floor(rnd() * MOTE_COLORS.length)],
+      };
+    });
+  }, [width]);
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Svg width={width} height={height}>
+    <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]} pointerEvents="none">
+      <Image source={WALLPAPER} style={StyleSheet.absoluteFill} resizeMode="cover" fadeDuration={0} />
+      <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
         <Defs>
-          <RadialGradient id="topGlow" gradientUnits="userSpaceOnUse" cx={width / 2} cy={0} rx={width * 1.0} ry={height * 0.5} fx={width / 2} fy={0}>
-            <Stop offset="0" stopColor={c.glow} stopOpacity={0.2} />
-            <Stop offset="1" stopColor={c.glow} stopOpacity={0} />
-          </RadialGradient>
-          <RadialGradient id="lowHaze" gradientUnits="userSpaceOnUse" cx={width} cy={height} rx={width * 1.1} ry={height * 0.42} fx={width} fy={height}>
-            <Stop offset="0" stopColor={c.violet} stopOpacity={0.16} />
-            <Stop offset="1" stopColor={c.violet} stopOpacity={0} />
-          </RadialGradient>
+          <LinearGradient id="wallDim" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#06040D" stopOpacity={WALL_DIM * 0.8} />
+            <Stop offset="0.55" stopColor="#06040D" stopOpacity={WALL_DIM} />
+            <Stop offset="1" stopColor="#06040D" stopOpacity={Math.min(0.95, WALL_DIM + 0.25)} />
+          </LinearGradient>
         </Defs>
-        <Rect x={0} y={0} width={width} height={height} fill="url(#topGlow)" />
-        <Rect x={0} y={0} width={width} height={height} fill="url(#lowHaze)" />
-        {motes.map((m, i) => <Circle key={i} cx={m.x} cy={m.y} r={m.r} fill={m.hue ? c.violet : c.glow} opacity={m.o} />)}
+        <Rect x={0} y={0} width={width} height={height} fill="url(#wallDim)" />
       </Svg>
+      {motes.map((m, i) => <MoteView key={i} m={m} h={height} />)}
     </View>
   );
 }
@@ -190,6 +259,8 @@ const LABELS: Record<Tab, string> = { home: 'Dashboard', stats: 'Stats', recipes
 const BAR_H = 76; // the bar itself
 const OVER = 92; // room above the bar for the gate button, its aura and its flames
 const MARGIN = 12;
+const SHIFT = 14; // the whole bar sits 14 px lower than the first version
+const BAR_DX = -18, BAR_DW = 48; // bar bleeds past the screen margins
 const BTN_R = 33; // gate button radius
 const CANVAS = 140; // square canvas holding the aura / flames, centred on the button
 const CC = { x: 70, y: 86 }; // button centre inside that canvas
@@ -197,7 +268,7 @@ const CC = { x: 70, y: 86 }; // button centre inside that canvas
 const BAR_IMG = require('../assets/bar.png'); // supplied artwork 845x141: notch in the middle, ornaments at both tips and the notch foot
 
 function BarShape({ w }: { w: number }) {
-  return <Image source={BAR_IMG} style={{ position: 'absolute', left: 0, top: OVER, width: w, height: BAR_H }} resizeMode="stretch" fadeDuration={0} />;
+  return <Image source={BAR_IMG} style={{ position: 'absolute', left: BAR_DX, top: OVER + SHIFT, width: w + BAR_DW, height: BAR_H }} resizeMode="stretch" fadeDuration={0} />;
 }
 
 const TAB_IMG: Record<Tab, { on: number; off: number }> = {
@@ -218,9 +289,14 @@ function TabItem({ t, on, onPress }: { t: Tab; on: boolean; onPress: () => void 
 }
 
 const GATE_IMG = require('../assets/gate/plus.png'); // supplied "+" artwork, static: nothing in it moves
-const GATE_SIZE = 76; // image is 152px square, ring about 100px wide, so it shows at about 50
-const GATE_DY = -7; // "+" centre relative to the top edge of the bar
-const AURA = 150; // canvas of the electric aura, centred on the "+"
+const GATE_SIZE = 84; // image is 152px square, ring about 100px wide
+const GATE_DX = -2; // "+" centre, relative to the middle of the bar
+const GATE_DY = 14; // "+" centre relative to the top edge of the bar
+const AURA = 150; // drawing space of the electric aura
+const AURA_PX = 113; // size it is shown at, centred on the bar's middle
+const AURA_OPACITY = 0.7; // halo and bolts intensity
+const BOLT_ODDS = 0.55; // share of the 12 rays that fire each cycle
+const BOLT_MS = 70; // one cycle of the flicker
 const RING = 25; // ring radius in dp: the bolts start just outside it
 
 /** One lightning bolt: a jagged polyline leaving the ring at angle `a`. */
@@ -233,7 +309,7 @@ function bolt(a: number, len: number): string {
   }
   return 'M ' + pts.join(' L ');
 }
-const randBolts = () => Array.from({ length: 12 }, (_, i) => (Math.random() < 0.65 ? bolt((i / 12) * Math.PI * 2 + (Math.random() - 0.5) * 0.35, 14 + Math.random() * 24) : null));
+const randBolts = () => Array.from({ length: 12 }, (_, i) => (Math.random() < BOLT_ODDS ? bolt((i / 12) * Math.PI * 2 + (Math.random() - 0.5) * 0.35, 14 + Math.random() * 24) : null));
 
 /** The "+" gate: a fixed image with a pulsing violet glow and flickering electric arcs around it. Pressed = shrinks and dims. */
 function GateButton({ onPress }: { onPress: () => void }) {
@@ -246,19 +322,20 @@ function GateButton({ onPress }: { onPress: () => void }) {
       Animated.timing(pulse, { toValue: 0, duration: 1300, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
     ]));
     loop.start();
-    const id = setInterval(() => setBolts(randBolts()), 120);
+    const id = setInterval(() => setBolts(randBolts()), BOLT_MS);
     return () => { loop.stop(); clearInterval(id); };
   }, [pulse]);
   const to = (v: number) => Animated.timing(press, { toValue: v, duration: 90, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
   const scale = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.92] });
   const op = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.8] });
-  const glowOp = Animated.multiply(pulse.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }), op);
+  const glowOp = Animated.multiply(pulse.interpolate({ inputRange: [0, 1], outputRange: [0.6 * AURA_OPACITY, AURA_OPACITY] }), op);
+  const boltOp = Animated.multiply(op, AURA_OPACITY);
   const cy = BTN_R + 1 + GATE_DY; // "+" centre inside the slot
-  const box = (size: number) => ({ position: 'absolute' as const, left: BTN_R - size / 2, top: cy - size / 2, width: size, height: size });
+  const box = (size: number, dx = 0) => ({ position: 'absolute' as const, left: BTN_R - size / 2 + dx, top: cy - size / 2, width: size, height: size });
   return (
     <Pressable style={s.gate} onPress={onPress} onPressIn={() => to(1)} onPressOut={() => to(0)} accessibilityRole="button" accessibilityLabel="Add">
-      <Animated.View pointerEvents="none" style={[box(AURA), { opacity: glowOp }]}>
-        <Svg width={AURA} height={AURA}>
+      <Animated.View pointerEvents="none" style={[box(AURA_PX), { opacity: glowOp }]}>
+        <Svg width={AURA_PX} height={AURA_PX} viewBox={`0 0 ${AURA} ${AURA}`}>
           <Defs>
             <RadialGradient id="gateGlow" cx={AURA / 2} cy={AURA / 2} rx={AURA / 2} ry={AURA / 2} fx={AURA / 2} fy={AURA / 2} gradientUnits="userSpaceOnUse">
               <Stop offset="0.3" stopColor="#8B4DFF" stopOpacity={0.55} />
@@ -269,8 +346,8 @@ function GateButton({ onPress }: { onPress: () => void }) {
           <Circle cx={AURA / 2} cy={AURA / 2} r={AURA / 2} fill="url(#gateGlow)" />
         </Svg>
       </Animated.View>
-      <Animated.View pointerEvents="none" style={[box(AURA), { opacity: op }]}>
-        <Svg width={AURA} height={AURA}>
+      <Animated.View pointerEvents="none" style={[box(AURA_PX), { opacity: boltOp }]}>
+        <Svg width={AURA_PX} height={AURA_PX} viewBox={`0 0 ${AURA} ${AURA}`}>
           {bolts.map((d, i) => d && (
             <G key={i}>
               <Path d={d} fill="none" stroke="#8B4DFF" strokeOpacity={0.4} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
@@ -279,7 +356,7 @@ function GateButton({ onPress }: { onPress: () => void }) {
           ))}
         </Svg>
       </Animated.View>
-      <Animated.View pointerEvents="none" style={[box(GATE_SIZE), { opacity: op, transform: [{ scale }] }]}>
+      <Animated.View pointerEvents="none" style={[box(GATE_SIZE, GATE_DX), { opacity: op, transform: [{ scale }] }]}>
         <Image source={GATE_IMG} style={{ width: GATE_SIZE, height: GATE_SIZE }} fadeDuration={0} />
       </Animated.View>
     </Pressable>
@@ -291,7 +368,7 @@ export function BottomNav({ tab, onTab, onAdd }: { tab: Tab; onTab: (t: Tab) => 
   const { width } = useWindowDimensions();
   const w = width - MARGIN * 2;
   return (
-    <View style={[s.navWrap, { bottom: Math.max(bottom, 12) + 4, left: MARGIN, right: MARGIN }]} pointerEvents="box-none">
+    <View style={[s.navWrap, { bottom: Math.max(bottom, 12) + 4 - SHIFT, left: MARGIN, right: MARGIN }]} pointerEvents="box-none">
       <BarShape w={w} />
       <View style={s.tabs} pointerEvents="box-none">
         <TabItem t="home" on={tab === 'home'} onPress={() => onTab('home')} />
@@ -312,13 +389,13 @@ const mkStyles = () => StyleSheet.create({
   title: { fontFamily: f.extra, fontSize: 24, color: c.ink, letterSpacing: 3, textTransform: 'uppercase', ...textGlow(c.glow, 14) },
   rule: { height: 1, backgroundColor: c.line, marginTop: 8 },
   ruleBright: { width: 54, height: 2, marginTop: -0.5, backgroundColor: c.glow, ...glow(c.glow, 8, 0.9) },
-  navWrap: { position: 'absolute', height: OVER + BAR_H },
-  tabs: { position: 'absolute', left: 20, right: 20, top: OVER, height: BAR_H, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  navWrap: { position: 'absolute', height: OVER + SHIFT + BAR_H },
+  tabs: { position: 'absolute', left: 20, right: 20, top: OVER + SHIFT, height: BAR_H, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   tab: { width: TAB_W, height: BAR_H, alignItems: 'center', justifyContent: 'center' },
   tabIcon: { width: 64, height: 34, alignItems: 'center', justifyContent: 'center' },
   tabLabel: { fontFamily: f.medium, fontSize: 11.5, marginTop: 1 },
   tabBar: { width: 42, height: 3, borderRadius: 2, marginTop: 4 },
-  gateSlot: { position: 'absolute', top: OVER - 1 - BTN_R, width: BTN_R * 2, height: BTN_R * 2 },
+  gateSlot: { position: 'absolute', top: OVER + SHIFT - 1 - BTN_R, width: BTN_R * 2, height: BTN_R * 2 },
   gate: { width: BTN_R * 2, height: BTN_R * 2, borderRadius: BTN_R },
 });
 export let s = mkStyles();

@@ -3,77 +3,71 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text, TextInput, tr } from '../i18n';
 import { askConfirm } from '../dialog';
 import { Calendar } from './Calendar';
-import Svg, { Circle, Line, Path, Text as SText } from 'react-native-svg';
-import { c, f, onTheme } from '../theme';
+import Svg, { Circle, Defs, Line, LinearGradient, Path, Rect, Stop, Text as SText } from 'react-native-svg';
+import { c, f, onTheme, textGlow } from '../theme';
 import { addDays, dayKey, fmt, fmtDay, parseKey, sum, targets, weekDays } from '../domain';
 import { useStore } from '../store';
 import { useSteps } from '../steps';
-import { card, Icon, KbView, P, Screen, Title } from '../ui';
+import { Frame, Icon, KbView, P, Screen } from '../ui';
 
-const FAT = '#F5B83D', CARB = '#35D4FF', PROT = '#A06BFF';
-const BAR_H = 150;
-
-const polar = (cx: number, cy: number, r: number, deg: number) => {
-  const a = ((deg - 90) * Math.PI) / 180;
-  return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
-};
-const OUT = 'rgba(110,145,230,0.38)';
-const arc = (cx: number, cy: number, r: number, a0: number, a1: number) => {
-  const [x0, y0] = polar(cx, cy, r, a0);
-  const [x1, y1] = polar(cx, cy, r, a1);
-  return `M${x0} ${y0} A${r} ${r} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1} ${y1}`;
-};
-
-/** Open ring gauge (240°) filled to `pct`. */
-function Gauge({ pct, color, big, small, foot }: { pct: number; color: string; big: string; small: string; foot: string }) {
-  const S = 128, a0 = 150, sweep = 240, p = Math.max(0, Math.min(pct, 1));
-  return (
-    <View style={{ width: S + 8, alignItems: 'center' }}>
-      <View style={{ width: S, height: S }}>
-        <Svg width={S} height={S} viewBox={`0 0 ${S} ${S}`}>
-          <Path d={arc(S / 2, S / 2, 54, a0, a0 + sweep)} stroke={OUT} strokeWidth={18} strokeLinecap="round" fill="none" />
-          <Path d={arc(S / 2, S / 2, 54, a0, a0 + sweep)} stroke={c.line} strokeWidth={14} strokeLinecap="round" fill="none" />
-          {p > 0 && <Path d={arc(S / 2, S / 2, 54, a0, a0 + sweep * Math.max(p, 0.02))} stroke={color} strokeWidth={14} strokeLinecap="round" fill="none" />}
-        </Svg>
-        <View style={s.gaugeC}>
-          <Text style={s.gaugeBig}>{big}</Text>
-          <Text style={s.gaugeSmall}>{small}</Text>
-        </View>
-      </View>
-      <Text style={s.gaugeFoot}>{foot}</Text>
-    </View>
-  );
-}
+const FAT = '#F5B83D', CARB = '#2F9BFF', PROT = '#A36BFF';
+const BAR_H = 112; // height of the bar area
+const BUDGET = 'rgba(245,184,61,0.75)';
 
 type Day = ReturnType<typeof weekDays>[number];
 
-/** One vertical track per weekday: filled to value/goal, check mark when `done`. */
-function DayBars({ days, values, goal, done, over }: { days: Day[]; values: number[]; goal: number; done: boolean[]; over?: (i: number) => boolean }) {
+/** Vertical gradient bar. */
+function GradBar({ id, h, a, b }: { id: string; h: number; a: string; b: string }) {
   return (
-    <View style={s.bars}>
+    <Svg width={26} height={h}>
+      <Defs>
+        <LinearGradient id={id} x1="0" y1="1" x2="0" y2="0">
+          <Stop offset="0" stopColor={a} />
+          <Stop offset="1" stopColor={b} />
+        </LinearGradient>
+      </Defs>
+      <Rect x={0} y={0} width={26} height={h} rx={2} fill={`url(#${id})`} />
+    </Svg>
+  );
+}
+
+/** One column per weekday: value above, bar (or stacked shares), day letter below, optional dashed budget line. */
+function Cols({ id, days, values, scale, budget, stacks, over, showVals }: { id: string; days: Day[]; values?: number[]; scale?: number; budget?: number; stacks?: ({ f: number; c: number; p: number } | null)[]; over?: (i: number) => boolean; showVals?: boolean }) {
+  return (
+    <View style={s.cols}>
       {days.map((d, i) => {
-        const h = Math.min(values[i] / goal, 1) * BAR_H;
+        const v = values?.[i] ?? 0, st = stacks?.[i];
+        const h = Math.max(values ? Math.min(v / (scale ?? 1), 1) * BAR_H : st ? BAR_H : 0, 0);
         return (
-          <View key={d.key} style={s.barCol}>
-            <View style={s.track}>
-              {values[i] > 0 && (
-                <View style={[s.fill, { height: Math.max(h, 8), backgroundColor: over?.(i) ? c.orange : c.glow }]}>
-                  {done[i] && <View style={{ marginBottom: 4 }}><Icon d={['M5 12.5l4.5 4.5L19 7.5']} size={16} sw={3} color={c.ink} /></View>}
+          <View key={d.key} style={s.col}>
+            {showVals ? <Text style={s.colV}>{v > 0 ? fmt(v) : ' '}</Text> : null}
+            <View style={s.colBar}>
+              {st ? (
+                <View style={[s.stack, { height: BAR_H }]}>
+                  <View style={{ flex: st.f, backgroundColor: FAT }} />
+                  <View style={{ flex: st.c, backgroundColor: CARB }} />
+                  <View style={{ flex: st.p, backgroundColor: PROT }} />
                 </View>
-              )}
+              ) : v > 0 ? <GradBar id={`${id}${i}`} h={Math.max(h, 6)} a={over?.(i) ? '#F5A000' : '#8B4DFF'} b={over?.(i) ? '#FFD04A' : '#B98CFF'} /> : <View style={s.colZero} />}
             </View>
-            <Text style={[s.barL, d.isToday && { color: c.ink, fontFamily: f.bold }]}>{d.letter}</Text>
+            <Text style={[s.colL, d.isToday && { color: '#fff' }]}>{d.letter}</Text>
           </View>
         );
       })}
+      {budget != null && scale ? (
+        <Svg style={[s.budget, { bottom: 18 + (budget / scale) * BAR_H }]} width="100%" height={2} pointerEvents="none">
+          <Line x1={0} x2="100%" y1={1} y2={1} stroke={BUDGET} strokeWidth={1.5} strokeDasharray="4 3" />
+        </Svg>
+      ) : null}
     </View>
   );
 }
 
-function CardHead({ title, right }: { title: string; right?: React.ReactNode }) {
+function CardHead({ title, sub, right }: { title: string; sub?: string; right?: React.ReactNode }) {
   return (
     <View style={s.cardHead}>
       <Text style={s.cardT}>{title}</Text>
+      {sub ? <Text style={s.cardSub}>{sub}</Text> : null}
       {right}
     </View>
   );
@@ -98,6 +92,12 @@ function WeightChart({ pts, goal }: { pts: [string, number][]; goal: number }) {
   return (
     <View onLayout={(e) => setW(e.nativeEvent.layout.width)}>
       <Svg width={w} height={H}>
+        <Defs>
+          <LinearGradient id="wArea" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#8B4DFF" stopOpacity={0.5} />
+            <Stop offset="1" stopColor="#8B4DFF" stopOpacity={0} />
+          </LinearGradient>
+        </Defs>
         {ticks.map((v, i) => (
           <React.Fragment key={i}>
             <Line x1={padL} x2={w - padR} y1={Y(v)} y2={Y(v)} stroke={c.line} strokeWidth={1} />
@@ -105,7 +105,8 @@ function WeightChart({ pts, goal }: { pts: [string, number][]; goal: number }) {
           </React.Fragment>
         ))}
         {goal >= lo && goal <= hi && <Line x1={padL} x2={w - padR} y1={Y(goal)} y2={Y(goal)} stroke={c.glowText} strokeWidth={1.5} strokeDasharray="5 4" />}
-        {pts.length > 1 && <Path d={path} stroke={c.ink} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />}
+        {pts.length > 1 && <Path d={`${path} L${X(pts[pts.length - 1][0])} ${H - padB} L${X(pts[0][0])} ${H - padB} Z`} fill="url(#wArea)" />}
+        {pts.length > 1 && <Path d={path} stroke="#C3A0FF" strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />}
         {pts.map((p) => <Circle key={p[0]} cx={X(p[0])} cy={Y(p[1])} r={pts.length > 40 ? 0 : 4} fill={c.glow} stroke={c.ink} strokeWidth={2} />)}
         <SText x={padL} y={H - 4} fontSize={11} fill={c.muted}>{shortDate(pts[0][0])}</SText>
         {pts.length > 1 && <SText x={w - padR} y={H - 4} fontSize={11} fill={c.muted} textAnchor="end">{shortDate(pts[pts.length - 1][0])}</SText>}
@@ -227,126 +228,74 @@ export function Stats({ onLogWeight }: { onLogWeight: () => void }) {
 
   return (
     <Screen>
-      <Title>Stats</Title>
+      <Text style={s.pageT}>Statistics</Text>
 
-      <View style={[s.card, card]}>
-        <CardHead title="Calories" />
-        <View style={s.row}>
-          <Gauge pct={kT / t.kcal} color={left < 0 ? c.orange : c.glow} big={fmt(Math.abs(left))} small={left >= 0 ? 'under' : 'over'} foot={`${fmt(kT)} cals`} />
-          <DayBars days={days} values={per.map((x) => x.kcal)} goal={t.kcal} done={per.map((x, i) => elapsed[i] && x.kcal <= t.kcal)} over={(i) => per[i].kcal > t.kcal} />
-        </View>
+      <Frame style={s.card} contentStyle={s.cardIn}>
+        <CardHead title="Calories" sub="this week" />
+        <Cols id="kc" days={days} values={per.map((x) => x.kcal)} scale={Math.max(t.kcal * 1.3, ...per.map((x) => x.kcal))} budget={t.kcal} over={(i) => per[i].kcal > t.kcal} showVals />
         <Text style={s.note}>
           {elapsed.some(Boolean) ? <><Text style={s.noteB}>{fmt(Math.abs(diff))} calories</Text>{` ${diff >= 0 ? 'under' : 'over'} budget for week`}</> : 'Log meals to see your week against your budget'}
         </Text>
-      </View>
+      </Frame>
 
-      <View style={[s.card, card]}>
-        <CardHead title="Macronutrients" />
-        <View style={s.row}>
-          <View style={{ width: 136 }}>
-            <Svg width={96} height={96} viewBox="-48 -48 96 96" style={{ alignSelf: 'center' }}>
-              {!wk ? <Circle r={46} fill={c.line} stroke={OUT} strokeWidth={1.5} /> : (
-                (() => {
-                  const segs = [[wk.f, FAT], [wk.c, CARB], [wk.p, PROT]] as const;
-                  const nz = segs.filter((x) => x[0] > 0.0001);
-                  if (nz.length === 1) return <Circle r={46} fill={nz[0][1]} />;
-                  let a = 0;
-                  return nz.map(([v, col], i) => {
-                    const a1 = a + v * 360;
-                    const [x0, y0] = polar(0, 0, 46, a), [x1, y1] = polar(0, 0, 46, a1);
-                    const d = `M0 0 L${x0} ${y0} A46 46 0 ${v > 0.5 ? 1 : 0} 1 ${x1} ${y1} Z`;
-                    a = a1;
-                    return <Path key={i} d={d} fill={col} />;
-                  });
-                })()
-              )}
-              {wk && <Circle r={46} fill="none" stroke={OUT} strokeWidth={1.5} />}
-            </Svg>
-            <View style={{ marginTop: 12, gap: 4 }}>
-              {([['Fat', FAT, wk?.f], ['Carbs', CARB, wk?.c], ['Protein', PROT, wk?.p]] as const).map(([l, col, v]) => (
-                <View key={l} style={s.legend}>
-                  <View style={[s.dot, { backgroundColor: col }]} />
-                  <Text style={s.legL}>{l}</Text>
-                  <Text style={s.legV}>{pc(v)}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-          <View style={s.bars}>
-            {days.map((d, i) => {
-              const x = shares[i];
-              return (
-                <View key={d.key} style={s.barCol}>
-                  <View style={[s.track, { height: BAR_H - 40, justifyContent: 'flex-start' }]}>
-                    {x && (
-                      <>
-                        <View style={{ flex: x.f, backgroundColor: FAT }} />
-                        <View style={{ flex: x.c, backgroundColor: CARB }} />
-                        <View style={{ flex: x.p, backgroundColor: PROT }} />
-                      </>
-                    )}
-                  </View>
-                  <Text style={[s.barL, d.isToday && { color: c.ink, fontFamily: f.bold }]}>{d.letter}</Text>
-                </View>
-              );
-            })}
-          </View>
+      <Frame style={s.card} contentStyle={s.cardIn}>
+        <CardHead title="Macronutrients" sub="% of calories" />
+        <Cols id="mc" days={days} stacks={shares} />
+        <View style={s.leg}>
+          {([['Protein', PROT], ['Carbs', CARB], ['Fat', FAT]] as const).map(([l, col]) => (
+            <View key={l} style={s.legI}><View style={[s.dot, { backgroundColor: col }]} /><Text style={s.legL}>{l}</Text></View>
+          ))}
         </View>
         <View style={s.avgRow}>
           <Text style={s.avgL}>Average</Text>
-          {([[avg?.f, FAT], [avg?.c, CARB], [avg?.p, PROT]] as const).map(([v, col], i) => (
-            <View key={i} style={[s.chip, { backgroundColor: col + '33' }]}><Text style={[s.chipT, { color: c.ink }]}>{pc(v)}</Text></View>
+          {([[avg?.p, PROT], [avg?.c, CARB], [avg?.f, FAT]] as const).map(([v, col], i) => (
+            <View key={i} style={[s.chip, { backgroundColor: col + '40' }]}><Text style={s.chipT}>{pc(v)}</Text></View>
           ))}
         </View>
-      </View>
+      </Frame>
 
-      <View style={[s.card, card]}>
-        <CardHead title="Steps" />
+      <Frame style={s.card} contentStyle={s.cardIn}>
+        <CardHead title="Steps" sub="this week" />
         {state.settings.fit ? (
           <>
-            <View style={s.row}>
-              <Gauge pct={stepsToday / goal} color={c.orange} big={fmt(stepsToday)} small="steps" foot={`goal ${fmt(goal)}`} />
-              <DayBars days={days} values={sv} goal={goal} done={sv.map((x, i) => x >= goal && days[i].key <= today)} />
-            </View>
+            <Cols id="sc" days={days} values={sv} scale={Math.max(goal * 1.1, ...sv)} showVals />
             <Text style={s.note}><Text style={s.noteB}>{fmt(stepsTotal)} steps</Text> this week{stepDays > 0 ? ` · ${fmt(stepsTotal / stepDays)} a day` : ''}</Text>
           </>
         ) : (
           <Text style={s.empty}>Turn on “Sync steps” in Profile to see your steps here.</Text>
         )}
-      </View>
+      </Frame>
 
-      <View style={[s.card, card]}>
+      <Frame style={s.card} contentStyle={s.cardIn}>
         <CardHead
           title="Weight"
           right={(
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Pressable onPress={() => setLogs(true)} style={s.logsBtn} accessibilityRole="button" accessibilityLabel="Weight logs"><Icon d={P.list} size={15} sw={2.4} color={c.ink} /><Text style={s.logsT}>Logs</Text></Pressable>
-              <Pressable onPress={onLogWeight} style={s.plus} accessibilityRole="button" accessibilityLabel="Log weight"><Icon d={P.plus} size={18} sw={2.8} color={c.glow} /></Pressable>
+              <Pressable onPress={() => setLogs(true)} style={s.logsBtn} accessibilityRole="button" accessibilityLabel="Weight logs"><Icon d={P.list} size={13} sw={2.4} color={c.ink} /><Text style={s.logsT}>Logs</Text></Pressable>
+              <Pressable onPress={onLogWeight} style={s.plus} accessibilityRole="button" accessibilityLabel="Log weight"><Icon d={P.plus} size={16} sw={2.8} color={c.glow} /></Pressable>
             </View>
           )}
         />
-        <View style={s.wRow}>
-          <Text style={s.wBig}>{last != null ? last : '—'}<Text style={s.wUnit}> kg</Text></Text>
-          {change != null && <Text style={[s.wDelta, { color: change <= 0 ? c.glowText : c.orange }]}>{change > 0 ? '+' : ''}{change.toFixed(1)} kg · {RANGES[range][1].toLowerCase()}</Text>}
-        </View>
+        <Text style={s.wBig}>{last != null ? last : '—'}<Text style={s.wUnit}> kg</Text></Text>
+        {change != null && <Text style={[s.wDelta, { color: change <= 0 ? '#C3A0FF' : c.orange }]}>{change > 0 ? '+' : ''}{change.toFixed(1)} kg · {RANGES[range][1].toLowerCase()}</Text>}
         <WeightChart pts={pts} goal={state.profile!.goalKg} />
         <View style={s.ranges}>
           {RANGES.map(([k], i) => (
-            <Pressable key={k} onPress={() => setRange(i)} style={[s.range, range === i && { backgroundColor: c.btn }]} accessibilityRole="button" accessibilityLabel={RANGES[i][1]}>
-              <Text style={[s.rangeT, range === i && { color: c.glowText }]}>{k}</Text>
+            <Pressable key={k} onPress={() => setRange(i)} style={[s.range, range === i && s.rangeOn]} accessibilityRole="button" accessibilityLabel={RANGES[i][1]}>
+              <Text style={[s.rangeT, range === i && { color: '#C3A0FF' }]}>{k}</Text>
             </Pressable>
           ))}
         </View>
         <Text style={s.rangeName}>{RANGES[range][1]} · dashed line = goal {state.profile!.goalKg} kg</Text>
-      </View>
+      </Frame>
       <WeightLogs visible={logs} onClose={() => setLogs(false)} />
     </Screen>
   );
 }
 
 const mkStyles = () => StyleSheet.create({
-  logsBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, borderRadius: 4, paddingHorizontal: 12, backgroundColor: c.page, borderWidth: 1, borderColor: c.line },
-  logsT: { fontFamily: f.bold, fontSize: 13, color: c.ink },
+  logsBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 28, borderRadius: 3, paddingHorizontal: 9, borderWidth: 1, borderColor: '#3A2C80' },
+  logsT: { fontFamily: f.semi, fontSize: 11, color: '#E7E1FF' },
   lWrap: { flex: 1, backgroundColor: 'rgba(2,4,14,0.8)', justifyContent: 'center', paddingHorizontal: 20 },
   lBox: { backgroundColor: c.card, borderRadius: 6, padding: 18, gap: 10, borderWidth: 1, borderColor: c.panelLine },
   lHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -360,39 +309,40 @@ const mkStyles = () => StyleSheet.create({
   lUnit: { fontFamily: f.bold, fontSize: 16, color: c.muted },
   lCta: { height: 50, borderRadius: 6, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.glow},
   lCtaT: { fontFamily: f.bold, fontSize: 16, color: '#fff', letterSpacing: 1.6, textTransform: 'uppercase' },
-  card: { marginHorizontal: 10, marginBottom: 8, borderRadius: 6, padding: 16 },
-  cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  cardT: { fontFamily: f.extra, fontSize: 18, color: c.ink, letterSpacing: -0.3 },
-  row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  gaugeC: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  gaugeBig: { fontFamily: f.extra, fontSize: 24, color: c.ink, letterSpacing: -0.6 },
-  gaugeSmall: { fontFamily: f.semi, fontSize: 13, color: c.muted },
-  gaugeFoot: { fontFamily: f.bold, fontSize: 14, color: c.ink, marginTop: 6 },
-  bars: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', marginLeft: 8 },
-  barCol: { alignItems: 'center', width: 26 },
-  track: { width: 22, height: BAR_H, borderRadius: 3, backgroundColor: c.page, justifyContent: 'flex-end', overflow: 'hidden', borderWidth: 1.5, borderColor: OUT },
-  fill: { width: '100%', borderRadius: 3, alignItems: 'center', justifyContent: 'flex-end' },
-  barL: { fontFamily: f.semi, fontSize: 12.5, color: c.soft, marginTop: 8 },
-  note: { fontFamily: f.regular, fontSize: 14, color: c.ink, textAlign: 'center', marginTop: 18 },
-  noteB: { fontFamily: f.extra },
-  legend: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  legL: { flex: 1, fontFamily: f.medium, fontSize: 13, color: c.ink },
-  legV: { fontFamily: f.extra, fontSize: 13, color: c.ink },
-  avgRow: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', marginTop: 10 },
-  avgL: { fontFamily: f.medium, fontSize: 13, color: c.muted, marginRight: 4 },
-  chip: { borderRadius: 4, paddingHorizontal: 16, paddingVertical: 9 },
-  chipT: { fontFamily: f.extra, fontSize: 14 },
+  card: { marginHorizontal: 10, marginBottom: 8 },
+  cardIn: { paddingHorizontal: 6, paddingVertical: 2 },
+  pageT: { fontFamily: f.extra, fontSize: 22, color: '#fff', letterSpacing: 2.4, textAlign: 'center', textTransform: 'uppercase', marginBottom: 10, ...textGlow('#8B4DFF', 14) },
+  cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, minHeight: 28 },
+  cardT: { fontFamily: f.extra, fontSize: 12.5, color: '#fff', letterSpacing: 1.25, textTransform: 'uppercase' },
+  cardSub: { fontFamily: f.semi, fontSize: 11, color: '#C3A0FF' },
+  cols: { flexDirection: 'row', gap: 8, position: 'relative' },
+  col: { flex: 1, alignItems: 'center' },
+  colV: { fontFamily: f.medium, fontSize: 9.5, color: '#B9AEE8', marginBottom: 3 },
+  colBar: { height: BAR_H, width: '100%', alignItems: 'center', justifyContent: 'flex-end' },
+  colZero: { width: 26, height: 1, backgroundColor: '#3A2C80' },
+  stack: { width: 26, borderRadius: 2, overflow: 'hidden' },
+  colL: { fontFamily: f.semi, fontSize: 10, color: '#8A80C8', marginTop: 5, textTransform: 'uppercase' },
+  budget: { position: 'absolute', left: -5, right: -5 },
+  note: { fontFamily: f.medium, fontSize: 12, color: '#B9AEE8', marginTop: 8 },
+  noteB: { fontFamily: f.bold, color: '#fff' },
+  leg: { flexDirection: 'row', gap: 12, marginTop: 8, flexWrap: 'wrap' },
+  legI: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legL: { fontFamily: f.medium, fontSize: 11, color: '#B9AEE8' },
+  dot: { width: 8, height: 8, borderRadius: 2 },
+  avgRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+  avgL: { fontFamily: f.semi, fontSize: 11, color: '#8A80C8', marginRight: 2 },
+  chip: { borderRadius: 3, paddingHorizontal: 9, paddingVertical: 3 },
+  chipT: { fontFamily: f.bold, fontSize: 11, color: '#fff' },
   empty: { fontFamily: f.regular, fontSize: 14, color: c.muted, lineHeight: 21 },
-  plus: { width: 34, height: 34, borderRadius: 4, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center' },
-  wRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap' },
-  wBig: { fontFamily: f.extra, fontSize: 30, color: c.ink, letterSpacing: -0.8 },
-  wUnit: { fontFamily: f.semi, fontSize: 15, color: c.muted },
-  wDelta: { fontFamily: f.bold, fontSize: 13 },
-  ranges: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
-  range: { backgroundColor: c.page, borderRadius: 4, paddingHorizontal: 13, paddingVertical: 8 },
-  rangeT: { fontFamily: f.bold, fontSize: 12.5, color: c.ink },
-  rangeName: { fontFamily: f.medium, fontSize: 12, color: c.muted, textAlign: 'center', marginTop: 10 },
+  plus: { width: 28, height: 28, borderRadius: 4, backgroundColor: c.btn, alignItems: 'center', justifyContent: 'center' },
+  wBig: { fontFamily: f.bold, fontSize: 26, color: '#fff' },
+  wUnit: { fontFamily: f.medium, fontSize: 13, color: '#8A80C8' },
+  wDelta: { fontFamily: f.semi, fontSize: 12, marginBottom: 4 },
+  ranges: { flexDirection: 'row', gap: 6, marginTop: 8 },
+  range: { flex: 1, alignItems: 'center', paddingVertical: 5, borderRadius: 3, borderWidth: 1, borderColor: '#2A2160' },
+  rangeOn: { borderColor: '#7A3FE0', backgroundColor: '#1D1245' },
+  rangeT: { fontFamily: f.semi, fontSize: 11, color: '#8A80C8' },
+  rangeName: { fontFamily: f.medium, fontSize: 11, color: '#8A80C8', textAlign: 'center', marginTop: 6 },
 });
 let s = mkStyles();
 onTheme(() => { s = mkStyles(); });

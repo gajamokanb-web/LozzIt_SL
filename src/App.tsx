@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { useColorScheme, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Cinzel_700Bold, Cinzel_900Black, useFonts as useCinzel } from '@expo-google-fonts/cinzel';
 import {
   ChakraPetch_400Regular,
   ChakraPetch_500Medium,
@@ -66,7 +65,7 @@ function Root() {
       <StatusBar style="light" />
       <Backdrop />
       {tab === 'home' && (
-        <Home selected={selected} onSelect={setSelected} onOpenCalendar={() => setCalendar(true)} onAdd={(meal, day, scan) => setAdding({ meal, day, scan })} onEdit={(e) => setAdding({ meal: e.meal, day: e.day, editId: e.id })} onGoSettings={() => setTab('profile')} />
+        <Home selected={selected} onSelect={setSelected} onOpenCalendar={() => setCalendar(true)} onAdd={(meal, day, scan) => setAdding({ meal, day, scan })} onEdit={(e) => setAdding({ meal: e.meal, day: e.day, editId: e.id })} onGoSettings={() => setTab('profile')} onGoRecipes={() => setTab('recipes')} />
       )}
       {tab === 'stats' && <Stats onLogWeight={() => openSheet('weight')} />}
       {tab === 'recipes' && <Recipes request={recipeReq} onConsumed={() => setRecipeReq(null)} onPickFood={pickFood} />}
@@ -83,9 +82,8 @@ function Root() {
 }
 
 export default function App() {
-  const [cinzel] = useCinzel({ Cinzel_700Bold, Cinzel_900Black });
   const [chakra] = useChakra({ ChakraPetch_400Regular, ChakraPetch_500Medium, ChakraPetch_600SemiBold, ChakraPetch_700Bold });
-  if (!cinzel || !chakra) return null;
+  if (!chakra) return null;
   return (
     <SafeAreaProvider>
       <StoreProvider>

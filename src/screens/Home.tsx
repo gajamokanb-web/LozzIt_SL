@@ -11,7 +11,9 @@ import { FactorModal } from './Factor';
 import { BlockMenu, MealPick, MealSummary } from './BlockMenu';
 import { Calendar } from './Calendar';
 import { useSteps } from '../steps';
-import { card, Corners, Icon, P, Screen } from '../ui';
+import { card, Frame, Icon, P, Screen } from '../ui';
+import type { Recipe } from '../recipes';
+import type { Food } from '../foods';
 
 const DROP_L = 0.25; // litres per drop (250 mL)
 const MACRO_COLOR = ['#A06BFF', '#35D4FF', '#F5B83D']; // protein / carbs / fat
@@ -20,6 +22,7 @@ const WATER_GOAL = 2.5; // litres (10 drops)
 const STEPS_ART = require('../../assets/home/steps_art.jpg');
 const WATER_ART = require('../../assets/home/water_art.jpg');
 const ADD_BTN = require('../../assets/add_btn.png');
+const FADE = '#0B0A20'; // dark of the frame's centre, used to fade the tile art
 
 /** Calorie ring: grows and glows with the day's progress; the emblem sits above the figures. */
 function KcalRing({ eaten, target }: { eaten: number; target: number }) {
@@ -27,8 +30,8 @@ function KcalRing({ eaten, target }: { eaten: number; target: number }) {
   const R = 64, C = 2 * Math.PI * R, dash = `${C * pct} ${C}`;
   const a = over ? c.red : '#A36BFF', b = over ? '#FF9AAE' : '#CBA8FF';
   return (
-    <View style={{ width: 136, height: 136 }}>
-      <Svg width={136} height={136} viewBox="0 0 150 150">
+    <View style={{ width: 120, height: 120 }}>
+      <Svg width={120} height={120} viewBox="0 0 150 150">
         <Defs>
           <LinearGradient id="kg" x1="0" y1="0" x2="1" y2="1">
             <Stop offset="0" stopColor={a} />
@@ -83,39 +86,84 @@ function GlowBar({ pct, i, h = 8 }: { pct: number; i: number; h?: number }) {
   );
 }
 
-/** Illustrated stat tile (steps / water): art fading in from the right, accent bar, round buttons. */
-function StatTile({ id, art, border, accent, icon, label, value, unit, pct, buttons, onPress }: { id: string; art: number; border: string; accent: string; icon: React.ReactNode; label: string; value: string; unit: string; pct: number; buttons?: React.ReactNode; onPress?: () => void }) {
+/** Illustrated stat tile (steps / water): framed, art fading in from the right, accent bar, round buttons. */
+function StatTile({ id, art, accent, icon, label, value, unit, pct, buttons, onPress }: { id: string; art: number; accent: string; icon: React.ReactNode; label: string; value: string; unit: string; pct: number; buttons?: React.ReactNode; onPress?: () => void }) {
   return (
-    <Pressable style={[s.stile, { borderColor: border }]} onPress={onPress} disabled={!onPress} accessibilityLabel={label}>
-      <Image source={art} style={s.stileArt} resizeMode="cover" />
-      <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
-        <Defs>
-          <LinearGradient id={`${id}h`} x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0" stopColor={c.card} stopOpacity={1} />
-            <Stop offset="0.28" stopColor={c.card} stopOpacity={1} />
-            <Stop offset="0.6" stopColor={c.card} stopOpacity={0} />
-          </LinearGradient>
-          <LinearGradient id={`${id}v`} x1="0" y1="1" x2="0" y2="0">
-            <Stop offset="0" stopColor={c.card} stopOpacity={0.95} />
-            <Stop offset="0.5" stopColor={c.card} stopOpacity={0} />
-          </LinearGradient>
-        </Defs>
-        <Rect x={0} y={0} width="100%" height="100%" fill={`url(#${id}h)`} />
-        <Rect x={0} y={0} width="100%" height="100%" fill={`url(#${id}v)`} />
-      </Svg>
-      <View style={s.stileIn}>
-        <View style={{ width: 26, alignItems: 'center' }}>{icon}</View>
-        <View style={{ flex: 1 }}>
-          <Text style={s.stileLabel}>{label}</Text>
-          <Text style={s.stileVal} numberOfLines={1} adjustsFontSizeToFit>{value}<Text style={[s.stileUnit, { color: accent }]}>{unit}</Text></Text>
-          <View style={s.stileBar}>
-            <View style={{ flex: 1 }}><GlowBar pct={pct} i={accent === '#A36BFF' ? 0 : 1} h={6} /></View>
-            <Text style={[s.stilePct, { color: accent }]}>{`${Math.round(pct * 100)}%`}</Text>
+    <Pressable style={s.stile} onPress={onPress} disabled={!onPress} accessibilityLabel={label}>
+      <Frame bw={8} style={{ height: 86 }} contentStyle={{ flex: 1, overflow: 'hidden' }}>
+        <Image source={art} style={s.stileArt} resizeMode="cover" />
+        <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
+          <Defs>
+            <LinearGradient id={`${id}h`} x1="0" y1="0" x2="1" y2="0">
+              <Stop offset="0" stopColor={FADE} stopOpacity={1} />
+              <Stop offset="0.28" stopColor={FADE} stopOpacity={1} />
+              <Stop offset="0.6" stopColor={FADE} stopOpacity={0} />
+            </LinearGradient>
+            <LinearGradient id={`${id}v`} x1="0" y1="1" x2="0" y2="0">
+              <Stop offset="0" stopColor={FADE} stopOpacity={0.95} />
+              <Stop offset="0.5" stopColor={FADE} stopOpacity={0} />
+            </LinearGradient>
+          </Defs>
+          <Rect x={0} y={0} width="100%" height="100%" fill={`url(#${id}h)`} />
+          <Rect x={0} y={0} width="100%" height="100%" fill={`url(#${id}v)`} />
+        </Svg>
+        <View style={s.stileIn}>
+          <View style={{ width: 24, alignItems: 'center' }}>{icon}</View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.stileLabel}>{label}</Text>
+            <Text style={s.stileVal} numberOfLines={1} adjustsFontSizeToFit>{value}<Text style={[s.stileUnit, { color: accent }]}>{unit}</Text></Text>
+            <View style={s.stileBar}>
+              <View style={{ flex: 1 }}><GlowBar pct={pct} i={accent === '#A36BFF' ? 0 : 1} h={5} /></View>
+              <Text style={[s.stilePct, { color: accent }]}>{`${Math.round(pct * 100)}%`}</Text>
+            </View>
           </View>
         </View>
-      </View>
-      {buttons ? <View style={s.stileBtns}>{buttons}</View> : null}
+        {buttons ? <View style={s.stileBtns}>{buttons}</View> : null}
+      </Frame>
     </Pressable>
+  );
+}
+
+const REC_GRAD = [['#5A2FC0', '#2A1070'], ['#1F6FD0', '#0C2A66'], ['#C07A12', '#4A2A08']];
+
+/** Home shortcut to the latest recipes: three tinted cards and a link to the Recipes tab. */
+function RecipesBlock({ recipes, foods, onAll }: { recipes: Recipe[]; foods: Record<string, Food>; onAll: () => void }) {
+  const shown = recipes.filter((x) => x.cat !== 'Draft').slice(0, 3);
+  const kcalOf = (x: Recipe) => {
+    let k = 0;
+    for (const i of x.ingredients) { const fd = i.fk ? foods[i.fk] : undefined; if (fd) k += (fd.per.kcal * i.g) / 100; }
+    return Math.round(k / Math.max(1, x.servings ?? 1));
+  };
+  return (
+    <Frame style={s.block} contentStyle={{ paddingHorizontal: 6 }}>
+      <Pressable onPress={onAll} style={s.recHead} accessibilityRole="button" accessibilityLabel="See all recipes">
+        <Text style={s.blockName}>Recipes</Text>
+        <Text style={s.recAll}>{'See all ›'}</Text>
+      </Pressable>
+      <View style={s.recRow}>
+        {shown.length === 0 ? (
+          <Pressable onPress={onAll} style={[s.recCard, { backgroundColor: '#1A1240' }]}><Text style={s.recName}>No recipes yet</Text><Text style={s.recSub}>Tap to add one</Text></Pressable>
+        ) : shown.map((x, i) => {
+          const k = kcalOf(x), [a, b] = REC_GRAD[i % REC_GRAD.length];
+          return (
+            <Pressable key={x.id} onPress={onAll} style={s.recCard} accessibilityRole="button" accessibilityLabel={x.title}>
+              <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
+                <Defs>
+                  <LinearGradient id={`rc${i}`} x1="0" y1="0" x2="1" y2="1">
+                    <Stop offset="0" stopColor={a} />
+                    <Stop offset="1" stopColor={b} />
+                  </LinearGradient>
+                </Defs>
+                <Rect x={0} y={0} width="100%" height="100%" fill={`url(#rc${i})`} />
+              </Svg>
+              <View style={s.recChef}><Icon d={P.chef} size={24} color="rgba(255,255,255,0.75)" sw={1.6} /></View>
+              <Text style={s.recName} numberOfLines={2}>{x.title}</Text>
+              <Text style={s.recSub} numberOfLines={1}>{k > 0 ? `${fmt(k)} kcal · ` : ''}{`${x.ingredients.length} ingredients`}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </Frame>
   );
 }
 
@@ -156,7 +204,7 @@ function MealBlock({ label, entries, icons, open, onToggle, onAdd, onMenu, onEdi
   const dots = React.useRef<View>(null);
   const total = sum(entries, 'kcal');
   return (
-    <View style={s.block}>
+    <Frame style={s.block} contentStyle={{ paddingHorizontal: 6 }}>
       <Pressable onPress={onToggle} style={s.blockHead} accessibilityRole="button" accessibilityLabel={`${label}, ${open ? 'collapse' : 'expand'}`}>
         <Icon d={open ? P.chevDown : P.next} size={20} color={c.muted} />
         <View style={{ flex: 1 }}>
@@ -186,22 +234,23 @@ function MealBlock({ label, entries, icons, open, onToggle, onAdd, onMenu, onEdi
           })}
           <View style={s.btnRow}>
             <Pressable onPress={onAdd} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Add food to ${label}`}>
-              <Image source={ADD_BTN} style={{ width: 170, height: 53 }} resizeMode="contain" />
+              <Image source={ADD_BTN} style={{ width: 118, height: 37 }} resizeMode="contain" />
             </Pressable>
           </View>
         </>
       )}
-    </View>
+    </Frame>
   );
 }
 
-export function Home({ selected, onSelect, onOpenCalendar, onAdd, onEdit, onGoSettings }: {
+export function Home({ selected, onSelect, onOpenCalendar, onAdd, onEdit, onGoSettings, onGoRecipes }: {
   selected: string;
   onSelect: (k: string) => void;
   onOpenCalendar: () => void;
   onAdd: (meal: MealKey, day: string, scan?: boolean) => void;
   onEdit: (entry: Entry) => void;
   onGoSettings: () => void;
+  onGoRecipes: () => void;
 }) {
   const { state, setWater, updateEntry, addEntry, removeEntry } = useStore();
   const [factory, setFactory] = useState<{ label: string; entries: Entry[] } | null>(null);
@@ -256,8 +305,7 @@ export function Home({ selected, onSelect, onOpenCalendar, onAdd, onEdit, onGoSe
       <DateBar selected={selected} onSelect={onSelect} onOpen={onOpenCalendar} />
       <WeekStrip days={days} selected={selected} onSelect={onSelect} />
 
-      <View style={s.hero}>
-        <View style={s.heroTag}><Text style={s.heroTagT}>Status</Text></View>
+      <Frame style={s.hero} contentStyle={s.heroIn}>
         <KcalRing eaten={eaten} target={t.kcal} />
         <View style={{ flex: 1, gap: nSubs > 1 ? 7 : 11 }}>
           {macros.map((m, i) => (
@@ -272,7 +320,6 @@ export function Home({ selected, onSelect, onOpenCalendar, onAdd, onEdit, onGoSe
                 </View>
                 <View style={s.mBar}>
                   <View style={{ flex: 1 }}><GlowBar pct={m.v / m.goal} i={i} /></View>
-                  <Text style={s.mPct}>{`${Math.round((m.v / m.goal) * 100)}%`}</Text>
                 </View>
                 {m.subs.map((x) => (
                   <View key={x.name} style={{ marginTop: 5 }}>
@@ -287,12 +334,11 @@ export function Home({ selected, onSelect, onOpenCalendar, onAdd, onEdit, onGoSe
             </View>
           ))}
         </View>
-        <Corners />
-      </View>
+      </Frame>
 
       <View style={s.tiles}>
         <StatTile
-          id="st" art={STEPS_ART} border="#2A2160" accent="#A36BFF" label="Steps today"
+          id="st" art={STEPS_ART} accent="#A36BFF" label="Steps today"
           icon={<Icon d={P.steps} size={24} color="#A36BFF" sw={2} />}
           value={state.settings.fit ? (steps && selIdx >= 0 ? fmt(steps[selIdx]) : '…') : '0'} unit={` / ${fmt(state.settings.stepGoal)}`}
           pct={state.settings.fit && steps && selIdx >= 0 ? steps[selIdx] / state.settings.stepGoal : 0}
@@ -300,7 +346,7 @@ export function Home({ selected, onSelect, onOpenCalendar, onAdd, onEdit, onGoSe
           buttons={state.settings.fit ? null : <View style={s.rbtn}><Icon d={P.next} size={14} sw={2.8} color="#fff" /></View>}
         />
         <StatTile
-          id="wt" art={WATER_ART} border="#1B3E78" accent="#2F9BFF" label="Water"
+          id="wt" art={WATER_ART} accent="#2F9BFF" label="Water"
           icon={<Icon d={P.drop} size={24} color="#2F9BFF" fill="#2F9BFF" sw={0} />}
           value={String(litres).replace('.', ',')} unit={` / ${String(WATER_GOAL).replace('.', ',')} L`} pct={litres / WATER_GOAL}
           buttons={
@@ -326,6 +372,9 @@ export function Home({ selected, onSelect, onOpenCalendar, onAdd, onEdit, onGoSe
             onEdit={(id) => onEdit(entries.find((x) => x.id === id)!)}
           />
         ))}
+      </View>
+      <View style={{ marginTop: 8 }}>
+        <RecipesBlock recipes={state.recipes} foods={state.foods} onAll={onGoRecipes} />
       </View>
       <BlockMenu
         anchorY={menu ? menu.y : null}
@@ -383,17 +432,15 @@ const mkStyles = () => StyleSheet.create({
   dayN: { fontFamily: f.bold, fontSize: 16, color: c.ink },
   todayDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: c.glow, ...glow(c.glow, 6, 1) },
 
-  hero: { marginHorizontal: 10, marginTop: 14, minHeight: 172, paddingVertical: 20, borderRadius: 4, backgroundColor: c.panel, borderWidth: 1, borderColor: c.panelLine, paddingLeft: 18, paddingRight: 20, flexDirection: 'row', alignItems: 'center', gap: 20, elevation: 8, ...glow(c.glow, 22, 0.4) },
-  heroTag: { position: 'absolute', top: -10, left: 18, paddingHorizontal: 8, backgroundColor: c.page },
-  heroTagT: { fontFamily: f.bold, fontSize: 10.5, color: c.glowText, letterSpacing: 2.6, textTransform: 'uppercase', ...textGlow(c.glow, 8) },
+  hero: { marginHorizontal: 10, marginTop: 12 },
+  heroIn: { minHeight: 132, paddingVertical: 8, paddingLeft: 8, paddingRight: 8, flexDirection: 'row', alignItems: 'center', gap: 14 },
   ringCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   ringBig: { fontFamily: f.extra, fontSize: 22, color: c.ink, letterSpacing: 0.5, ...textGlow(c.glow, 14) },
   ringPct: { fontFamily: f.bold, fontSize: 11.5, color: '#fff', marginTop: 2 },
   ringSmall: { fontFamily: f.medium, fontSize: 9.5, color: '#8A80C8', marginTop: 1 },
   mRow: { flexDirection: 'row', gap: 8 },
   mBar: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-  mPct: { fontFamily: f.medium, fontSize: 10.5, color: '#B9AEE8', width: 30, textAlign: 'right' },
-  stile: { flex: 1, height: 100, borderRadius: 6, borderWidth: 1, backgroundColor: c.card, overflow: 'hidden' },
+  stile: { flex: 1 },
   stileArt: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '78%' },
   stileIn: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, gap: 4 },
   stileLabel: { fontFamily: f.medium, fontSize: 11, color: '#E7E1FF' },
@@ -401,7 +448,7 @@ const mkStyles = () => StyleSheet.create({
   stileUnit: { fontFamily: f.medium, fontSize: 10.5 },
   stileBar: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5 },
   stilePct: { fontFamily: f.medium, fontSize: 10, width: 28, textAlign: 'right' },
-  stileBtns: { position: 'absolute', top: 6, right: 6, flexDirection: 'row', gap: 6 },
+  stileBtns: { position: 'absolute', top: 0, right: 0, flexDirection: 'row', gap: 6 },
   rbtn: { width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(10,8,28,0.85)', borderWidth: 1, borderColor: 'rgba(190,180,255,0.35)', alignItems: 'center', justifyContent: 'center' },
   macroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 },
   macroName: { fontFamily: f.medium, fontSize: 12.5, color: c.ink },
@@ -426,7 +473,14 @@ const mkStyles = () => StyleSheet.create({
   pm: { width: 26, height: 26, borderRadius: 3, marginLeft: 4, backgroundColor: c.blueTint, borderWidth: 1, borderColor: c.blueSoft, alignItems: 'center', justifyContent: 'center' },
   drops: { height: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 
-  block: { ...card, marginHorizontal: 10, borderRadius: 4, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 },
+  block: { marginHorizontal: 10 },
+  recHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
+  recAll: { fontFamily: f.semi, fontSize: 12.5, color: c.glowText },
+  recRow: { flexDirection: 'row', gap: 8, marginTop: 6 },
+  recCard: { flex: 1, height: 100, borderRadius: 4, padding: 8, justifyContent: 'flex-end', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(190,170,255,0.28)' },
+  recChef: { position: 'absolute', top: 8, right: 8 },
+  recName: { fontFamily: f.semi, fontSize: 12, lineHeight: 14, color: '#fff' },
+  recSub: { fontFamily: f.medium, fontSize: 10, color: '#D9CCFF', marginTop: 2 },
   dots: { width: 32, height: 36, alignItems: 'center', justifyContent: 'center' },
   blockHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   blockName: { fontFamily: f.extra, fontSize: 14, color: c.ink, letterSpacing: 1.2 },
@@ -436,7 +490,7 @@ const mkStyles = () => StyleSheet.create({
   itemName: { fontFamily: f.semi, fontSize: 14, color: c.ink },
   itemSub: { fontFamily: f.regular, fontSize: 12, color: c.muted, marginTop: 1 },
   itemKcal: { fontFamily: f.medium, fontSize: 14, color: c.ink, marginLeft: 10 },
-  btnRow: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginTop: 4 },
+  btnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 4 },
   addBtn: { backgroundColor: c.tint, borderRadius: 4, borderWidth: 1, borderColor: c.panelLine, paddingVertical: 9, paddingHorizontal: 22 },
   addText: { fontFamily: f.bold, fontSize: 12.5, color: c.glowText, letterSpacing: 1.6, textTransform: 'uppercase' },
 });
