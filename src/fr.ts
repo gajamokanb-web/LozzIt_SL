@@ -2,7 +2,7 @@
 export const FR: Record<string, string> = {
   // navigation
   Dashboard: 'Accueil', Stats: 'Stats', Logs: 'Journal', Profile: 'Profil', Add: 'Ajouter',
-  'See all ›': 'Tout voir ›', 'No recipes yet': 'Aucune recette', 'Tap to add one': 'Appuie pour en ajouter', Statistics: 'Statistiques', '% of calories': '% des calories',
+  'See all ›': 'Tout voir ›', Body: 'Corps', Goals: 'Objectifs', 'Steps & health': 'Pas et santé', 'Sync on': 'Synchro active', 'Sync off': 'Synchro désactivée', 'steps / day': 'pas / jour', 'meals shown': 'repas affichés', 'extra bars': 'petites barres', 'Key set': 'Clé enregistrée', 'No key set': 'Clé non définie', 'Backup and restore': 'Sauvegarde et restauration', 'No recipes yet': 'Aucune recette', 'Tap to add one': 'Appuie pour en ajouter', Statistics: 'Statistiques', '% of calories': '% des calories',
   Status: 'Statut', 'Steps today': 'Pas du jour', Monarch: 'Monarque', Shadow: 'Ombre',
   'The System has chosen you': 'Le Système t’a choisi', Awaken: 'S’éveiller',
   // meals
