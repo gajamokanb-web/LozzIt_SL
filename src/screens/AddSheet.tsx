@@ -1,12 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing,  Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Image, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from '../i18n';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { c, f, onTheme } from '../theme';
 import { fmtDay, MEALS, type MealKey } from '../domain';
 import { Calendar } from './Calendar';
 import { useStore } from '../store';
-import { Disc, Icon, MealIcon, P, KbView } from '../ui';
+import { Frame, Icon, P, KbView } from '../ui';
+
+/** Neon icons for each meal, water and weight (cropped from the supplied sheet). */
+const ICONS: Record<string, any> = {
+  breakfast: require('../../assets/add/breakfast.png'),
+  snack_am: require('../../assets/add/snack_am.png'),
+  lunch: require('../../assets/add/lunch.png'),
+  snack_pm: require('../../assets/add/snack_pm.png'),
+  dinner: require('../../assets/add/dinner.png'),
+  snack_eve: require('../../assets/add/snack_eve.png'),
+  water: require('../../assets/add/water.png'),
+  weight: require('../../assets/add/weight.png'),
+};
 
 export type SheetView = 'grid' | 'water' | 'weight';
 type View_ = SheetView;
@@ -68,19 +80,19 @@ export function AddSheet({ visible, start = 'grid', day, suggested, onClose, onM
         </Animated.View>
         <Animated.View style={[s.sheet, { paddingBottom: Math.max(bottom, 12) + 14, transform: [{ translateY: y }] }]}>
           {view === 'grid' && (
-            <View style={s.grid}>
+            <Frame bw={8} contentStyle={s.grid}>
               {MEALS.filter((m) => state.settings.meals.includes(m.key)).map((m) => (
                 <Tile key={m.key} label={m.label} on={m.key === suggested} onPress={() => onMeal(m.key)}>
-                  <MealIcon k={m.key} size={58} />
+                  <Image source={ICONS[m.key]} style={s.icon} />
                 </Tile>
               ))}
               <Tile label="Water" onPress={() => setView('water')}>
-                <Disc d={P.drop} bg={c.blue} size={58} fill="#fff" sw={0} />
+                <Image source={ICONS.water} style={s.icon} />
               </Tile>
               <Tile label="Weight" onPress={() => setView('weight')}>
-                <Disc d={P.weight} bg={c.ink} size={58} sw={2.2} />
+                <Image source={ICONS.weight} style={s.icon} />
               </Tile>
-            </View>
+            </Frame>
           )}
 
           {view === 'water' && (
@@ -124,6 +136,7 @@ const mkStyles = () => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(21,32,15,0.45)' },
   sheet: { backgroundColor: c.card, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 22, paddingHorizontal: 14 },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  icon: { width: 66, height: 66 },
   tile: { width: '25%', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 2 },
   disc: { width: 66, height: 66, borderRadius: 33, borderWidth: 3, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
   mealImg: { width: 60, height: 60 },

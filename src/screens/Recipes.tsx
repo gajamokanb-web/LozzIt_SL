@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, Keyboard,  Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Image, Keyboard,  Modal, PanResponder, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { askConfirm, notify } from '../dialog';
 import { Text, TextInput, tr } from '../i18n';
 import { Linking } from 'react-native';
@@ -13,6 +13,18 @@ import { convertRecipe, DRAFT, newId, type Converted, type Ingredient, type Reci
 import { DEFAULT_MODEL } from '../vision';
 import { useStore } from '../store';
 import { card, Disc, Icon, P, Screen, Title, KbView } from '../ui';
+
+/** Neon logos for the recipe categories (same set as the food sheet). */
+const CAT_IMG: Record<string, any> = {
+  Breakfast: require('../../assets/add/breakfast.png'),
+  'Main dish': require('../../assets/add/lunch.png'),
+  Dessert: require('../../assets/add/snack_pm.png'),
+  Other: require('../../assets/add/snack_am.png'),
+};
+const CatDisc = ({ cat, size }: { cat: string; size: number }) =>
+  CAT_IMG[cat]
+    ? <Image source={CAT_IMG[cat]} style={{ width: size, height: size }} />
+    : <Disc d={catIcon(cat)} bg={catBg(cat)} size={size} />;
 
 export type RecipeRequest = { n: number; kind: 'new' | 'import'; cat?: string } | null;
 /** Opens the food search / scan / create screen to choose a food; `onPick` receives it. */
@@ -81,7 +93,7 @@ export function Recipes({ request, onConsumed, onPickFood }: { request: RecipeRe
       {groups.map(({ cat, list }) => (
         <View key={cat} style={[s.group, card]}>
           <View style={s.catRow}>
-            <Disc d={catIcon(cat)} bg={catBg(cat)} size={30} />
+            <CatDisc cat={cat} size={30} />
             <Text style={s.catName}>{cat}</Text>
             <Text style={s.catCount}>{list.length}</Text>
           </View>
@@ -143,7 +155,7 @@ export function RecipeSheet({ visible, onClose, onNew, onImport }: { visible: bo
           </Pressable>
           {state.recipeCats.filter((k) => k !== DRAFT).map((cat) => (
             <Pressable key={cat} onPress={() => { onClose(); onNew(cat); }} style={s.sRow} accessibilityRole="button" accessibilityLabel={`New ${cat}`}>
-              <Disc d={catIcon(cat)} bg={catBg(cat)} size={44} />
+              <CatDisc cat={cat} size={44} />
               <View style={{ flex: 1 }}>
                 <Text style={s.sName}>{cat}</Text>
               </View>
