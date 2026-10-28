@@ -2,6 +2,7 @@
 export const FR: Record<string, string> = {
   // navigation
   Dashboard: 'Accueil', Stats: 'Stats', Logs: 'Journal', Profile: 'Profil', Add: 'Ajouter',
+  'See all ›': 'Tout voir ›', 'No recipes yet': 'Aucune recette', 'Tap to add one': 'Appuie pour en ajouter', Statistics: 'Statistiques', '% of calories': '% des calories',
   Status: 'Statut', 'Steps today': 'Pas du jour', Monarch: 'Monarque', Shadow: 'Ombre',
   'The System has chosen you': 'Le Système t’a choisi', Awaken: 'S’éveiller',
   // meals
@@ -162,6 +163,7 @@ const T = (s: string) => FR[s] ?? s;
 export const FR_PATTERNS: [RegExp, (...m: string[]) => string][] = [
   [/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), (\w{3}) (\d+)$/, (w, m, d) => `${WDS[w]} ${d} ${MON3[m]}`],
   [/^Copy a meal from a previous day into (.+)\.$/, (m) => `Copie un repas d’un jour précédent ${IN[m] ?? m}.`],
+  [/^(\d+) ingredients$/, (n) => `${n} ingrédient${+n > 1 ? 's' : ''}`],
   [/^under budget for week$/, () => 'sous le budget de la semaine'],
   [/^over budget for week$/, () => 'au-dessus du budget de la semaine'],
   [/^Step (\d+) of 4$/, (n) => `Étape ${n} sur 4`],

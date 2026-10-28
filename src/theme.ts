@@ -95,12 +95,12 @@ export const textGlow = (color: string, radius = 10) => ({
 /** Corner radii: the System UI is angular. */
 export const r = { sm: 3, md: 4, lg: 6 };
 
-/** Chakra Petch (angular HUD sans) for UI text, Cinzel (engraved serif) for titles and big numbers. */
+/** Chakra Petch (angular HUD sans) for all text, titles and numbers included. */
 export const f = {
   regular: 'ChakraPetch_400Regular',
   medium: 'ChakraPetch_500Medium',
   semi: 'ChakraPetch_600SemiBold',
   bold: 'ChakraPetch_700Bold',
-  extra: 'Cinzel_700Bold',
-  display: 'Cinzel_900Black',
+  extra: 'ChakraPetch_700Bold',
+  display: 'ChakraPetch_700Bold',
 };
