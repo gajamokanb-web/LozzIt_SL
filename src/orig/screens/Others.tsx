@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { askConfirm, notify } from '../dialog';
-import { Text, TextInput, tr } from '../../i18n';
+import { getLang, Text, TextInput, tr } from '../../i18n';
 import { exportBackup, pickBackup } from '../../backup';
 import { c, f, onTheme } from '../theme';
+const alpha = (hex: string, a: number) => hex + Math.round(Math.max(0, Math.min(1, a)) * 255).toString(16).padStart(2, '0');
 import { ACTIVITY, autoBudget, autoMacros, budgetFor, dayKey, fmt, fmtDay, MEALS, METHODS, resolveMacros, targets, type MacroRule } from '../../domain';
 import { useStore } from '../../store';
 import { card, Icon, P, Screen, Title, KbView } from '../ui';
@@ -51,6 +52,7 @@ export function Profile() {
   };
   type EditKey = 'age' | 'height' | 'weight' | 'goal' | 'activity' | 'budget' | 'macros' | 'stepGoal';
   const [edit, setEdit] = useState<EditKey | null>(null);
+  const [cat, setCat] = useState<string>('steps');
   const [vals, setVals] = useState<string[]>([]);
   type RS = { t: MacroRule['t']; v: string };
   const [rl, setRl] = useState<RS[]>([]);
@@ -107,110 +109,171 @@ export function Profile() {
     setSettings({ meals: MEALS.map((m) => m.key).filter((x) => (x === k ? !on : st.meals.includes(x))) });
   };
   const Row = ({ title, sub, value, onChange }: { title: string; sub?: string; value: boolean; onChange: (v: boolean) => void }) => (
-    <View style={[s.li, { alignItems: 'center', borderTopWidth: 1, borderTopColor: c.line }]}>
+    <View style={s.rw}>
       <View style={{ flex: 1, paddingRight: 12 }}>
-        <Text style={s.liT}>{title}</Text>
+        <Text style={s.rwT}>{title}</Text>
         {sub ? <Text style={s.liS}>{sub}</Text> : null}
       </View>
-      <Switch value={value} onValueChange={onChange} trackColor={{ true: c.lime, false: c.line }} thumbColor="#fff" accessibilityLabel={title} />
+      <Switch value={value} onValueChange={onChange} trackColor={{ true: c.btn, false: c.line }} thumbColor={value ? '#fff' : c.soft} accessibilityLabel={title} />
     </View>
+  );
+  const fr = getLang() === 'fr';
+  const themeName = tr(({ light: 'Light', dark: 'Dark', system: 'System' } as const)[st.origTheme]);
+  const extras = [st.showSugar, st.showSalt, st.showFiber, st.showSat].filter(Boolean).length;
+  /** Foldable category: icon + title + one-line summary; the rows show when it is open. */
+  const catCard = (k: string, title: string, sum: string, icon: string[], color: string, rowsUi: React.ReactNode) => {
+    const on = cat === k;
+    return (
+      <View key={k} style={[s.cat, card]}>
+        <Pressable onPress={() => setCat(on ? '' : k)} style={s.catHead} accessibilityRole="button" accessibilityState={{ expanded: on }} accessibilityLabel={title}>
+          <View style={[s.catIco, { borderColor: alpha(color, 0.4), backgroundColor: alpha(color, 0.13) }]}><Icon d={icon} size={16} color={color} sw={1.9} /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.catT}>{title}</Text>
+            <Text style={s.catS} numberOfLines={1}>{sum}</Text>
+          </View>
+          <Icon d={on ? P.chevDown : P.next} size={16} color={on ? c.limeText : c.soft} sw={2.2} />
+        </Pressable>
+        {on ? <View style={s.catRows}>{rowsUi}</View> : null}
+      </View>
+    );
+  };
+  const pick = (keys: EditKey[]) => rows.filter((x) => keys.includes(x[0])).map(([key, k, v]) => (
+    <Pressable key={k} onPress={() => open(key)} style={s.rw} accessibilityRole="button" accessibilityLabel={`Edit ${k}`}>
+      <Text style={s.rwT}>{k}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 }}>
+        <Text style={s.rwV} numberOfLines={1}>{v}</Text>
+        <Icon d={P.next} size={14} color={c.soft} sw={2.2} />
+      </View>
+    </Pressable>
+  ));
+  const link = (label: string, onPress: () => void) => (
+    <Pressable onPress={onPress} style={s.rw} accessibilityRole="button">
+      <Text style={s.rwT}>{label}</Text>
+      <Icon d={P.next} size={14} color={c.soft} sw={2.2} />
+    </Pressable>
   );
   return (
     <Screen>
       <View style={s.pHead}>
         <View style={s.avatarRing}><View style={s.avatar}><Text style={s.avatarLetter}>{p.name.charAt(0).toUpperCase()}</Text></View></View>
-        <Text style={s.pName}>{p.name}</Text>
+        <Text style={s.pName} numberOfLines={1}>{p.name}</Text>
+        <View style={s.pChips}>
+          <Text style={s.pChip}>{`${p.weightKg} → ${p.goalKg} kg`}</Text>
+          <Text style={s.pChip}>{`${fmt(t.kcal)} kcal / ${fr ? 'jour' : 'day'}`}</Text>
+        </View>
       </View>
-      <View style={[s.list, card]}>
-        {rows.map(([key, k, v], i) => (
-          <Pressable key={k} onPress={() => open(key)} style={[s.li, { alignItems: 'center' }, i > 0 && { borderTopWidth: 1, borderTopColor: c.line }]} accessibilityRole="button" accessibilityLabel={`Edit ${k}`}>
-            <Text style={s.liK}>{k}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
-              <Text style={[s.liV, { flexShrink: 1, textAlign: 'right' }]} numberOfLines={1}>{v}</Text>
-              <Icon d={P.next} size={16} color={c.soft} />
+      {catCard('body', 'Body', `${p.age} ${fr ? 'ans' : 'yrs'} · ${p.heightCm} cm · ${p.weightKg} → ${p.goalKg} kg`, P.user, '#A36BFF', <>
+          <View style={[s.rw, { alignItems: 'center' }]}>
+            <Text style={s.rwT}>Sex</Text>
+            <View style={[s.segRow, { width: 190 }]}>
+              {([['f', 'Female'], ['m', 'Male']] as const).map(([k, l]) => (
+                <Pressable key={k} onPress={() => setProfile({ ...p, sex: k })} style={[s.segB, p.sex === k && s.segOn]} accessibilityRole="button" accessibilityState={{ selected: p.sex === k }}>
+                  <Text style={[s.segT, p.sex === k && { color: '#fff' }]}>{l}</Text>
+                </Pressable>
+              ))}
             </View>
-          </Pressable>
-        ))}
-      </View>
-      <Text style={s.sect}>Appearance</Text>
-      <View style={[s.list, card]}>
-        <View style={[s.li, { flexDirection: 'column', gap: 10 }]}>
-          <Text style={s.liT}>Design</Text>
-          <View style={s.segRow}>
-            {([['original', 'Original'], ['sl', 'Solo Leveling']] as const).map(([k, l]) => (
-              <Pressable key={k} onPress={() => setSettings({ design: k })} style={[s.segB, st.design === k && { backgroundColor: c.btn }]} accessibilityRole="button" accessibilityState={{ selected: st.design === k }}>
-                <Text style={[s.segT, st.design === k && { color: '#fff' }]}>{l}</Text>
-              </Pressable>
-            ))}
           </View>
-        </View>
-        <View style={[s.li, { flexDirection: 'column', gap: 10 }]}>
-          <Text style={s.liT}>Theme</Text>
-          <View style={s.segRow}>
-            {([['light', 'Light'], ['dark', 'Dark'], ['system', 'System']] as const).map(([k, l]) => (
-              <Pressable key={k} onPress={() => setSettings({ origTheme: k })} style={[s.segB, st.origTheme === k && { backgroundColor: c.btn }]} accessibilityRole="button" accessibilityState={{ selected: st.origTheme === k }}>
-                <Text style={[s.segT, st.origTheme === k && { color: '#fff' }]}>{l}</Text>
-              </Pressable>
-            ))}
+          {pick(['age', 'height', 'weight', 'goal'])}
+        </>)}
+      {catCard('goals', 'Goals', `${fmt(t.kcal)} kcal · ${t.protein} P · ${t.carbs} C · ${t.fat} F`, ['M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0', 'M12 12m-5 0a5 5 0 1 0 10 0a5 5 0 1 0-10 0', 'M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0'], '#F5B83D', pick(['activity', 'budget', 'macros']))}
+      {catCard('steps', 'Steps & health', `${tr(st.fit ? 'Sync on' : 'Sync off')} · ${fmt(st.stepGoal)} ${tr('steps / day')}`, P.steps, '#2F9BFF', (
+        <>
+          <View style={s.rw}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={s.rwT}>Sync steps</Text>
+              <Text style={s.liS}>Reads your daily steps through Health Connect: Google Fit, Mi Fitness (Mi Band), Samsung Health…</Text>
+            </View>
+            <Switch value={st.fit} onValueChange={toggleFit} trackColor={{ true: c.btn, false: c.line }} thumbColor={st.fit ? '#fff' : c.soft} accessibilityLabel="Sync steps" />
           </View>
-        </View>
-        <View style={[s.li, { flexDirection: 'column', gap: 10, borderTopWidth: 1, borderTopColor: c.line }]}>
-          <Text style={s.liT}>Language</Text>
-          <View style={s.segRow}>
-            {([['en', 'English'], ['fr', 'Français']] as const).map(([k, l]) => (
-              <Pressable key={k} onPress={() => setSettings({ lang: k })} style={[s.segB, st.lang === k && { backgroundColor: c.btn }]} accessibilityRole="button" accessibilityState={{ selected: st.lang === k }}>
-                <Text style={[s.segT, st.lang === k && { color: '#fff' }]}>{l}</Text>
-              </Pressable>
-            ))}
+          {st.fit && (
+            <Pressable onPress={() => open('stepGoal')} style={s.rw} accessibilityRole="button">
+              <Text style={s.rwT}>Daily step goal</Text>
+              <Text style={s.rwV}>{fmt(st.stepGoal)}</Text>
+            </Pressable>
+          )}
+          {st.fit && (
+            <Pressable onPress={() => setPicker(true)} style={s.rw} accessibilityRole="button">
+              <Text style={s.rwT}>Steps source</Text>
+              <Text style={s.rwV}>{sourceName(st.stepSource)}</Text>
+            </Pressable>
+          )}
+        </>
+      ))}
+      {catCard('meals', 'Meals', `${st.meals.length} ${tr('meals shown')}`, P.meals, '#3DDC97', (
+        <>
+          <Text style={s.catNote}>Choose the meals you use. A meal you turn off disappears from the dashboard, but stays visible on days where it already has food.</Text>
+          {MEALS.map((m) => <Row key={m.key} title={m.label} value={st.meals.includes(m.key)} onChange={() => toggleMeal(m.key)} />)}
+        </>
+      ))}
+      {catCard('nutri', 'Nutrition on the dashboard', `${extras} / 4 ${tr('extra bars')}`, P.stats, '#FF5C8A', (
+        <>
+          <Text style={s.catNote}>Show a smaller bar under Carbs and under Fat. Values come from the foods you log.</Text>
+          <Row title="Sugar" sub="under Carbs" value={st.showSugar} onChange={(v) => setSettings({ showSugar: v })} />
+          <Row title="Salt" sub="under Fat" value={st.showSalt} onChange={(v) => setSettings({ showSalt: v })} />
+          <Row title="Fiber" sub="under Fat" value={st.showFiber} onChange={(v) => setSettings({ showFiber: v })} />
+          <Row title="Saturated fat" sub="under Fat" value={st.showSat} onChange={(v) => setSettings({ showSat: v })} />
+        </>
+      ))}
+      {catCard('look', 'Appearance', `${themeName} · ${fr ? 'Français' : 'English'}`, P.moonStar, '#C8A2FF', (
+        <>
+          <View style={[s.rw, { flexDirection: 'column', alignItems: 'stretch', gap: 8, paddingVertical: 8 }]}>
+            <Text style={s.rwT}>Design</Text>
+            <View style={s.segRow}>
+              {([['original', 'Original'], ['sl', 'Solo Leveling']] as const).map(([k, l]) => (
+                <Pressable key={k} onPress={() => setSettings({ design: k })} style={[s.segB, st.design === k && s.segOn]} accessibilityRole="button" accessibilityState={{ selected: st.design === k }}>
+                  <Text style={[s.segT, st.design === k && { color: '#fff' }]}>{l}</Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
-        </View>
-      </View>
-      <Text style={s.sect}>Settings</Text>
-      <View style={[s.list, card]}>
-        <View style={[s.li, { alignItems: 'center' }]}>
-          <View style={{ flex: 1, paddingRight: 12 }}>
-            <Text style={s.liT}>Sync steps</Text>
-            <Text style={s.liS}>Reads your daily steps through Health Connect: Google Fit, Mi Fitness (Mi Band), Samsung Health…</Text>
+          <View style={[s.rw, { flexDirection: 'column', alignItems: 'stretch', gap: 8, paddingVertical: 8 }]}>
+            <Text style={s.rwT}>Theme</Text>
+            <View style={s.segRow}>
+              {([['light', 'Light'], ['dark', 'Dark'], ['system', 'System']] as const).map(([k, l]) => (
+                <Pressable key={k} onPress={() => setSettings({ origTheme: k })} style={[s.segB, st.origTheme === k && s.segOn]} accessibilityRole="button" accessibilityState={{ selected: st.origTheme === k }}>
+                  <Text style={[s.segT, st.origTheme === k && { color: '#fff' }]}>{l}</Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
-          <Switch value={state.settings.fit} onValueChange={toggleFit} trackColor={{ true: c.lime, false: c.line }} thumbColor="#fff" />
+          <View style={[s.rw, { flexDirection: 'column', alignItems: 'stretch', gap: 8, paddingVertical: 8 }]}>
+            <Text style={s.rwT}>Language</Text>
+            <View style={s.segRow}>
+              {([['en', 'English'], ['fr', 'Français']] as const).map(([k, l]) => (
+                <Pressable key={k} onPress={() => setSettings({ lang: k })} style={[s.segB, st.lang === k && s.segOn]} accessibilityRole="button" accessibilityState={{ selected: st.lang === k }}>
+                  <Text style={[s.segT, st.lang === k && { color: '#fff' }]}>{l}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </>
+      ))}
+      {catCard('ai', 'AI label scan', tr(st.groqKey ? 'Key set' : 'No key set'), P.scan, '#35D4FF', (
+        <>
+          <Text style={s.catNote}>Photograph a nutrition table when you create a food: a Groq vision model reads carbs, sugar, protein, fat, saturated fat, salt and fiber. Get a key on console.groq.com/keys. The key stays on this phone; each photo is sent to Groq.</Text>
+          <View style={{ paddingVertical: 10, gap: 8 }}>
+            <Text style={s.fieldL}>API key</Text>
+            <TextInput style={s.keyIn} value={st.groqKey} onChangeText={(x) => setSettings({ groqKey: x.trim() })} placeholder="gsk_…" placeholderTextColor={c.soft} secureTextEntry autoCapitalize="none" autoCorrect={false} selectionColor={c.lime} accessibilityLabel="Groq API key" />
+            <Text style={s.fieldL}>Model</Text>
+            <TextInput style={s.keyIn} value={st.groqModel} onChangeText={(x) => setSettings({ groqModel: x.trim() })} placeholder="qwen/qwen3.8-27b" placeholderTextColor={c.soft} autoCapitalize="none" autoCorrect={false} selectionColor={c.lime} accessibilityLabel="Groq model" />
+            <Pressable onPress={() => Linking.openURL('https://console.groq.com/keys')} accessibilityRole="link"><Text style={s.link}>Get a Groq API key</Text></Pressable>
+          </View>
+        </>
+      ))}
+      {catCard('data', 'Data', tr('Backup and restore'), ['M12 5m-8 0a8 3 0 1 0 16 0a8 3 0 1 0-16 0', 'M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5', 'M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3'], '#9C8FC4', (
+        <>
+          <Text style={s.catNote}>Save everything (profile, log, foods, recipes, settings) in a file, or restore it from a file. Your API key is not included.</Text>
+          {link('Export data', doExport)}
+          {link('Import data', doImport)}
+          {dataMsg ? <Text style={[s.liS, { paddingVertical: 8, color: /^Could|^This/.test(dataMsg) ? c.red : c.limeText }]}>{dataMsg}</Text> : null}
+        </>
+      ))}
+      <Pressable onPress={confirmReset} accessibilityRole="button" accessibilityLabel="Delete profile">
+        <View style={[s.cat, card, s.delIn]}>
+          <Icon d={P.trash} size={16} color={c.red} sw={2} />
+          <Text style={s.resetText}>Delete profile</Text>
         </View>
-        {state.settings.fit && (
-          <Pressable onPress={() => open('stepGoal')} style={[s.li, { borderTopWidth: 1, borderTopColor: c.line, alignItems: 'center' }]} accessibilityRole="button">
-            <Text style={s.liT}>Daily step goal</Text>
-            <Text style={[s.liV, { color: c.limeText }]}>{fmt(st.stepGoal)}</Text>
-          </Pressable>
-        )}
-        {state.settings.fit && (
-          <Pressable onPress={() => setPicker(true)} style={[s.li, { borderTopWidth: 1, borderTopColor: c.line, alignItems: 'center' }]} accessibilityRole="button">
-            <Text style={s.liT}>Steps source</Text>
-            <Text style={[s.liV, { color: c.limeText }]}>{sourceName(state.settings.stepSource)}</Text>
-          </Pressable>
-        )}
-      </View>
-      <Text style={s.sect}>AI label scan</Text>
-      <View style={[s.list, card]}>
-        <Text style={[s.liS, { paddingTop: 14 }]}>Photograph a nutrition table when you create a food: a Groq vision model reads carbs, sugar, protein, fat, saturated fat, salt and fiber. Get a key on console.groq.com/keys. The key stays on this phone; each photo is sent to Groq.</Text>
-        <View style={{ paddingVertical: 12, gap: 8 }}>
-          <Text style={s.fieldL}>API key</Text>
-          <TextInput style={s.keyIn} value={st.groqKey} onChangeText={(x) => setSettings({ groqKey: x.trim() })} placeholder="gsk_…" placeholderTextColor={c.soft} secureTextEntry autoCapitalize="none" autoCorrect={false} selectionColor={c.lime} accessibilityLabel="Groq API key" />
-          <Text style={s.fieldL}>Model</Text>
-          <TextInput style={s.keyIn} value={st.groqModel} onChangeText={(x) => setSettings({ groqModel: x.trim() })} placeholder="qwen/qwen3.8-27b" placeholderTextColor={c.soft} autoCapitalize="none" autoCorrect={false} selectionColor={c.lime} accessibilityLabel="Groq model" />
-          <Pressable onPress={() => Linking.openURL('https://console.groq.com/keys')} accessibilityRole="link"><Text style={s.link}>Get a Groq API key</Text></Pressable>
-        </View>
-      </View>
-      <Text style={s.sect}>Meals</Text>
-      <View style={[s.list, card]}>
-        <Text style={[s.liS, { paddingTop: 14 }]}>Choose the meals you use. A meal you turn off disappears from the dashboard, but stays visible on days where it already has food.</Text>
-        {MEALS.map((m) => <Row key={m.key} title={m.label} value={st.meals.includes(m.key)} onChange={() => toggleMeal(m.key)} />)}
-      </View>
-      <Text style={s.sect}>Nutrition on the dashboard</Text>
-      <View style={[s.list, card]}>
-        <Text style={[s.liS, { paddingTop: 14 }]}>Show a smaller bar under Carbs and under Fat. Values come from the foods you log.</Text>
-        <Row title="Sugar" sub="under Carbs" value={st.showSugar} onChange={(v) => setSettings({ showSugar: v })} />
-        <Row title="Salt" sub="under Fat" value={st.showSalt} onChange={(v) => setSettings({ showSalt: v })} />
-        <Row title="Fiber" sub="under Fat" value={st.showFiber} onChange={(v) => setSettings({ showFiber: v })} />
-        <Row title="Saturated fat" sub="under Fat" value={st.showSat} onChange={(v) => setSettings({ showSat: v })} />
-      </View>
+      </Pressable>
       <Modal visible={!!edit} transparent animationType="fade" onRequestClose={() => setEdit(null)} statusBarTranslucent>
         <KbView style={s.mWrap}>
           <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onPress={() => setEdit(null)} />
@@ -342,6 +405,21 @@ export function Profile() {
 }
 
 const mkStyles = () => StyleSheet.create({
+  pChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  pChip: { fontFamily: f.semi, fontSize: 12, color: c.ink, backgroundColor: c.page, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4, overflow: 'hidden' },
+  cat: { marginHorizontal: 10, marginBottom: 10, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 10 },
+  catIn: { paddingHorizontal: 6, paddingVertical: 2 },
+  catHead: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 36 },
+  catIco: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  catT: { fontFamily: f.bold, fontSize: 15, color: c.ink },
+  catS: { fontFamily: f.medium, fontSize: 12, color: c.muted, marginTop: 1 },
+  catRows: { marginTop: 8 },
+  catNote: { fontFamily: f.regular, fontSize: 12.5, color: c.muted, lineHeight: 18, paddingVertical: 8, borderTopWidth: 1, borderTopColor: c.line },
+  rw: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 44, paddingVertical: 6, borderTopWidth: 1, borderTopColor: c.line },
+  rwT: { fontFamily: f.medium, fontSize: 14, color: c.ink },
+  rwV: { fontFamily: f.bold, fontSize: 14, color: c.ink, flexShrink: 1, textAlign: 'right' },
+  delIn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  segOn: { backgroundColor: c.btn },
   segRow: { flexDirection: 'row', gap: 8 },
   segB: { flex: 1, height: 40, borderRadius: 20, backgroundColor: c.page, alignItems: 'center', justifyContent: 'center' },
   segT: { fontFamily: f.bold, fontSize: 13.5, color: c.ink },

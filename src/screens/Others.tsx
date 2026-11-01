@@ -163,7 +163,19 @@ export function Profile() {
           </View>
         </View>
       </View>
-      {catCard('body', 'Body', `${p.age} ${fr ? 'ans' : 'yrs'} · ${p.heightCm} cm · ${p.weightKg} → ${p.goalKg} kg`, P.user, '#A36BFF', pick(['age', 'height', 'weight', 'goal']))}
+      {catCard('body', 'Body', `${p.age} ${fr ? 'ans' : 'yrs'} · ${p.heightCm} cm · ${p.weightKg} → ${p.goalKg} kg`, P.user, '#A36BFF', <>
+          <View style={[s.rw, { alignItems: 'center' }]}>
+            <Text style={s.rwT}>Sex</Text>
+            <View style={[s.segRow, { width: 190 }]}>
+              {([['f', 'Female'], ['m', 'Male']] as const).map(([k, l]) => (
+                <Pressable key={k} onPress={() => setProfile({ ...p, sex: k })} style={[s.segB, p.sex === k && s.segOn]} accessibilityRole="button" accessibilityState={{ selected: p.sex === k }}>
+                  <Text style={[s.segT, p.sex === k && { color: '#fff' }]}>{l}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+          {pick(['age', 'height', 'weight', 'goal'])}
+        </>)}
       {catCard('goals', 'Goals', `${fmt(t.kcal)} kcal · ${t.protein} P · ${t.carbs} C · ${t.fat} F`, ['M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0', 'M12 12m-5 0a5 5 0 1 0 10 0a5 5 0 1 0-10 0', 'M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0'], '#F5B83D', pick(['activity', 'budget', 'macros']))}
       {catCard('steps', 'Steps & health', `${tr(st.fit ? 'Sync on' : 'Sync off')} · ${fmt(st.stepGoal)} ${tr('steps / day')}`, P.steps, '#2F9BFF', (
         <>
