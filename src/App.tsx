@@ -23,6 +23,15 @@ import { Profile } from './screens/Others';
 import { Recipes, RecipeSheet, type RecipeRequest, type PickFood } from './screens/Recipes';
 import { Stats } from './screens/Stats';
 import { Calendar } from './screens/Calendar';
+import { OrigRoot } from './orig/OrigRoot';
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+  useFonts as useJakarta,
+} from '@expo-google-fonts/plus-jakarta-sans';
 
 function hourMeal(enabled: MealKey[]): MealKey {
   const h = new Date().getHours();
@@ -30,7 +39,7 @@ function hourMeal(enabled: MealKey[]): MealKey {
   return enabled.includes(want) ? want : enabled[0] ?? want;
 }
 
-function Root() {
+function SlRoot() {
   const { ready, state, setProfile, setWeight } = useStore();
   const scheme = useColorScheme();
   const [tab, setTab] = useState<Tab>('home');
@@ -81,9 +90,16 @@ function Root() {
   );
 }
 
+/** Picks the design (Original green / Solo Leveling) from the settings. */
+function Root() {
+  const { state } = useStore();
+  return state.settings.design === 'sl' ? <SlRoot /> : <OrigRoot />;
+}
+
 export default function App() {
   const [chakra] = useChakra({ ChakraPetch_400Regular, ChakraPetch_500Medium, ChakraPetch_600SemiBold, ChakraPetch_700Bold });
-  if (!chakra) return null;
+  const [jakarta] = useJakarta({ PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold });
+  if (!chakra || !jakarta) return null;
   return (
     <SafeAreaProvider>
       <StoreProvider>

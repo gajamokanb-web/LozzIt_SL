@@ -206,6 +206,16 @@ export function Profile() {
       {catCard('look', 'Appearance', `${themeName} · ${fr ? 'Français' : 'English'}`, P.moonStar, '#C8A2FF', (
         <>
           <View style={[s.rw, { flexDirection: 'column', alignItems: 'stretch', gap: 8, paddingVertical: 8 }]}>
+            <Text style={s.rwT}>Design</Text>
+            <View style={s.segRow}>
+              {([['original', 'Original'], ['sl', 'Solo Leveling']] as const).map(([k, l]) => (
+                <Pressable key={k} onPress={() => setSettings({ design: k })} style={[s.segB, st.design === k && s.segOn]} accessibilityRole="button" accessibilityState={{ selected: st.design === k }}>
+                  <Text style={[s.segT, st.design === k && { color: '#fff' }]}>{l}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+          <View style={[s.rw, { flexDirection: 'column', alignItems: 'stretch', gap: 8, paddingVertical: 8 }]}>
             <Text style={s.rwT}>Theme</Text>
             <View style={s.segRow}>
               {([['light', 'Monarch'], ['dark', 'Shadow'], ['system', 'Auto']] as const).map(([k, l]) => (
